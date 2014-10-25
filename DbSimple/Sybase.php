@@ -1,6 +1,6 @@
 <?php
 /**
- * DbSimple_Mssql: Mssql database.
+ * DbSimple_Sybase: Sybase database.
  * (C) Dk Lab, http://en.dklab.ru
  *
  * This library is free software; you can redistribute it and/or
@@ -13,38 +13,39 @@
  *
  * @author Dmitry Koterov, http://forum.dklab.ru/users/DmitryKoterov/
  * @author Konstantin Zhinko, http://forum.dklab.ru/users/KonstantinGinkoTit/
+ * @author Ivan A-R (Mssql => Sybase)
  *
- * @version 2.x $Id: Mssql.php 163 2007-01-10 09:47:49Z dk $
+ * @version 2.x $Id: Sybase.php 163 2007-01-10 09:47:49Z dk $
  */
 require_once dirname(__FILE__) . '/Generic.php';
 
 
 /**
- * Database class for Mssql.
+ * Database class for Sybase.
  */
-class DbSimple_Mssql extends DbSimple_Database
+class DbSimple_Sybase extends DbSimple_Database
 {
     var $link;
 
     /**
      * constructor(string $dsn)
-     * Connect to Mssql.
+     * Connect to Sybase.
      */
-    function DbSimple_Mssql($dsn)
+    function DbSimple_Sybase($dsn)
     {
-        if (!is_callable('mssql_connect')) {
-            return $this->_setLastError("-1", "Mssql extension is not loaded", "mssql_connect");
+        if (!is_callable('sybase_connect')) {
+            return $this->_setLastError("-1", "Sybase extension is not loaded", "sybase_connect");
         }
-        $ok = $this->link = @mssql_connect(
+        // May be use sybase_connect or sybase_pconnect
+        $ok = $this->link = @sybase_pconnect(
             $dsn['host'] . (empty($dsn['port'])? "" : ":".$dsn['port']),
             $dsn['user'],
-            $dsn['pass'],
-            true
+            $dsn['pass']
         );
         $this->_resetLastError();
-        if (!$ok) return $this->_setDbError('mssql_connect()');
-        $ok = @mssql_select_db(preg_replace('{^/}s', '', $p['path']), $this->link);
-        if (!$ok) return $this->_setDbError('mssql_select_db()');
+        if (!$ok) return $this->_setDbError('sybase_connect()');
+        $ok = @sybase_select_db(preg_replace('{^/}s', '', $p['path']), $this->link);
+        if (!$ok) return $this->_setDbError('sybase_select_db()');
     }
 
 
@@ -66,7 +67,7 @@ class DbSimple_Mssql extends DbSimple_Database
 
     function _performNewBlob($blobid=null)
     {
-        $obj = new DbSimple_Mssql_Blob($this, $blobid);
+        $obj = new DbSimple_Sybase_Blob($this, $blobid);
         return $obj;
     }
 
@@ -74,9 +75,10 @@ class DbSimple_Mssql extends DbSimple_Database
     function _performGetBlobFieldNames($result)
     {
         $blobFields = array();
-        for ($i=mssql_num_fields($result)-1; $i>=0; $i--) {
-            $type = mssql_field_type($result, $i);
-            if (strpos($type, "BLOB") !== false) $blobFields[] = mssql_field_name($result, $i);
+        for ($i=sybase_num_fields($result)-1; $i>=0; $i--) {
+            $type = sybase_fetch_field($result, $i);
+            if (strpos($type->type, "BINARY") !== false) $blobFields[] = $type->name;
+            unset($type);
         }
         return $blobFields;
     }
@@ -153,7 +155,7 @@ class DbSimple_Mssql extends DbSimple_Database
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
 
-        $result = mssql_query($queryMain[0], $this->link);
+        $result = sybase_query($queryMain[0], $this->link);
 
         if ($result === false) {
             return $this->_setDbError($queryMain[0]);
@@ -163,16 +165,14 @@ class DbSimple_Mssql extends DbSimple_Database
 
             if (preg_match('/^\s* INSERT \s+/six', $queryMain[0])) {
                 // INSERT queries return generated ID.
-                $result = mssql_fetch_assoc(mssql_query("SELECT SCOPE_IDENTITY() AS insert_id", $this->link));
+                $result = sybase_fetch_assoc(sybase_query("SELECT SCOPE_IDENTITY() AS insert_id", $this->link));
                 return isset($result['insert_id']) ? $result['insert_id'] : true;
             }
 
             // Non-SELECT queries return number of affected rows, SELECT - resource.
-            if (function_exists('mssql_affected_rows')) {
-                return mssql_affected_rows($this->link);
-            } elseif (function_exists('mssql_rows_affected')) {
-                return mssql_rows_affected($this->link);
-            }
+
+            return sybase_affected_rows($this->link);
+
         }
         return $result;
     }
@@ -180,11 +180,11 @@ class DbSimple_Mssql extends DbSimple_Database
 
     function _performFetch($result)
     {
-        $row = mssql_fetch_assoc($result);
-        //if (mssql_error()) return $this->_setDbError($this->_lastQuery);
+        $row = sybase_fetch_assoc($result);
+        //if (sybase_error()(!!!)) return $this->_setDbError($this->_lastQuery);
         if ($row === false) return null;
 
-        // mssql bugfix - replase ' ' to ''
+        // TODO check it: sybase bugfix - replase ' ' to ''
         if (is_array($row)) {
             foreach ($row as $k => $v) {
                 if ($v === ' ') $row[$k] = '';
@@ -196,7 +196,7 @@ class DbSimple_Mssql extends DbSimple_Database
 
     function _setDbError($query, $errors = null)
     {
-        return $this->_setLastError('Error! ', mssql_get_last_message() . strip_tags($errors), $query);
+        return $this->_setLastError('Error! ', sybase_get_last_message() . strip_tags($errors), $query);
     }
 
 
@@ -207,13 +207,14 @@ class DbSimple_Mssql extends DbSimple_Database
 }
 
 
-class DbSimple_Mssql_Blob extends DbSimple_Generic_Blob
+
+class DbSimple_Sybase_Blob extends DbSimple_Generic_Blob
 {
-    // Mssql does not support separate BLOB fetching.
+    // Sybase does not support separate BLOB fetching.
     var $blobdata = null;
     var $curSeek  = 0;
 
-    function DbSimple_Mssql_Blob(&$database, $blobdata=null)
+    function DbSimple_Sybase_Blob(&$database, $blobdata=null)
     {
         $this->blobdata = $blobdata;
         $this->curSeek = 0;
