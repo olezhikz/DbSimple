@@ -27,6 +27,10 @@ class DbSimple_Sybase extends DbSimple_Database
 {
     var $link;
 
+    // Allow on fly DB encodings
+    protected $lcharset = NULL; // Local charset
+    protected $rcharset = NULL; // Remote charset
+
     /**
      * constructor(string $dsn)
      * Connect to Sybase.
@@ -36,6 +40,14 @@ class DbSimple_Sybase extends DbSimple_Database
         if (!is_callable('sybase_connect')) {
             return $this->_setLastError("-1", "Sybase extension is not loaded", "sybase_connect");
         }
+
+        if(isset($dsn['lcharset'])) {
+            $this->lcharset = $dsn['lcharset'];
+        }
+        if(isset($dsn['rcharset'])) {
+            $this->rcharset = $dsn['rcharset'];
+        }
+
         // May be use sybase_connect or sybase_pconnect
         $ok = $this->link = @sybase_pconnect(
             $dsn['host'] . (empty($dsn['port'])? "" : ":".$dsn['port']),
@@ -46,6 +58,7 @@ class DbSimple_Sybase extends DbSimple_Database
         if (!$ok) return $this->_setDbError('sybase_connect()');
         $ok = @sybase_select_db(preg_replace('{^/}s', '', $p['path']), $this->link);
         if (!$ok) return $this->_setDbError('sybase_select_db()');
+
     }
 
 
@@ -155,7 +168,15 @@ class DbSimple_Sybase extends DbSimple_Database
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
 
-        $result = sybase_query($queryMain[0], $this->link);
+        // Convert query if allow on fly encodings
+        if($this->lcharset && $this->rcharset) {
+            $sql_query = mb_convert_encoding($queryMain[0],
+                $this->rcharset, $this->lcharset);
+        } else {
+            $sql_query = $queryMain[0];
+        }
+
+        $result = sybase_query($sql_query, $this->link);
 
         if ($result === false) {
             return $this->_setDbError($queryMain[0]);
@@ -178,16 +199,42 @@ class DbSimple_Sybase extends DbSimple_Database
     }
 
 
+    private $_result;
+    private $_text_fields;
+    
+    private function _getTextFields($result) {
+        if($this->_result == $result) {
+            return $this->_text_fields;
+        }
+        $this->_result = $result;
+        $this->_text_fields = array();
+        for ($i=sybase_num_fields($result)-1; $i>=0; $i--) {
+            $type = sybase_fetch_field($result, $i);
+            if(!$type->numeric) { $this->_text_fields[$type->name] = $type->type; }
+        }
+        return $this->_text_fields;
+    }
+
     function _performFetch($result)
     {
         $row = sybase_fetch_assoc($result);
         //if (sybase_error()(!!!)) return $this->_setDbError($this->_lastQuery);
         if ($row === false) return null;
 
-        // TODO check it: sybase bugfix - replase ' ' to ''
+        // sybase bugfix - replase ' ' to ''
+        // Encoding string fields on fly
         if (is_array($row)) {
-            foreach ($row as $k => $v) {
-                if ($v === ' ') $row[$k] = '';
+            $tf = $this->_getTextFields($result);
+            foreach ($tf as $k => $t) {
+                $v = $row[$k];
+                if($v === ' ') {
+                    $v = '';
+                } else {
+                    if($this->lcharset && $this->rcharset) {
+                        $v = mb_convert_encoding($v, $this->lcharset, $this->rcharset);
+                    }
+                }
+                $row[$k] = $v;
             }
         }
         return $row;

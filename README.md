@@ -3,7 +3,7 @@ DbSimple
 
 Add to your composer.json
 
-```
+```json
     "require": {
        "dklab/dbsimple": "dev-master"
     },
@@ -15,3 +15,26 @@ Add to your composer.json
     ]
 ```
 
+
+Sybase driver
+-------------
+
+Allow on fly encoding (see. Example)
+
+
+Example
+-------
+
+```php
+<?php
+
+require_once 'vendor/autoload.php';
+
+$DB = DbSimple_Generic::connect("sybase://sa:sqlsql@127.0.0.1:4100/dtzk?rcharset=cp1251&lcharset=utf8");
+
+$r = $DB->query("set ROWCOUNT 10");
+
+$data = $DB->select("SELECT * FROM Show WHERE Name LIKE '%балет%'");
+var_dump($data);
+
+```
