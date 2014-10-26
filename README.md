@@ -30,7 +30,7 @@ Example
 
 require_once 'vendor/autoload.php';
 
-$DB = DbSimple_Generic::connect("sybase://sa:sqlsql@127.0.0.1:4100/dtzk?rcharset=cp1251&lcharset=utf8");
+$DB = DbSimple_Generic::connect("sybase://user:password@127.0.0.1:5000/db_name?rcharset=cp1251&lcharset=utf8");
 
 $r = $DB->query("set ROWCOUNT 10");
 
