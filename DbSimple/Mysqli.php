@@ -160,24 +160,32 @@ class DbSimple_Mysqli extends DbSimple_Database
 		return array();
 	}
 
-	protected function _performFetch($result)
-	{
-		if ($this->isMySQLnd)
-			return $result;
+	 protected function _performFetch($result)
+    	{
+        	if ($this->isMySQLnd)
+        	 return $result;
 
-		$row = $result->fetch_assoc();
+		 $row = $result->fetch_assoc();
+        	if ($this->link->error)
+            	return $this->_setDbError($this->link,$this->_lastQuery);
 
-        if ($this->link->error)
-			return $this->_setDbError($this->_lastQuery);
+        	if ($row === null)
+        	{
+            		$this->clearStoredResults($this->link);
+            		$result->close();
+            		return null;
+        	}
 
-        if ($row === false)
-		{
-			$result->close();
-			return null;
-		}
-		
-        return $row;
-	}
+        	return $row;
+    	}
+
+    	function clearStoredResults($mysqli_link){
+		 while($mysqli_link->next_result()){
+        	  	if($l_result = $mysqli_link->store_result()){
+        	     	$l_result->free();
+        	   }
+	 	}
+	 }
 }
 
 ?>
