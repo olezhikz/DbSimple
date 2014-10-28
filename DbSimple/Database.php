@@ -939,7 +939,7 @@ abstract class DbSimple_Database extends DbSimple_LastError
      * Convert SQL field-list to COUNT(...) clause
      * (e.g. 'DISTINCT a AS aa, b AS bb' -> 'COUNT(DISTINCT a, b)').
      */
-    private function _fieldList2Count($fields)
+    protected function _fieldList2Count($fields)
     {
         $m = null;
         if (preg_match('/^\s* DISTINCT \s* (.*)/sx', $fields, $m)) {

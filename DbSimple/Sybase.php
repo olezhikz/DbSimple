@@ -56,7 +56,7 @@ class DbSimple_Sybase extends DbSimple_Database
         );
         $this->_resetLastError();
         if (!$ok) return $this->_setDbError('sybase_connect()');
-        $ok = @sybase_select_db(preg_replace('{^/}s', '', $p['path']), $this->link);
+        $ok = @sybase_select_db(preg_replace('{^/}s', '', $dsn['path']), $this->link);
         if (!$ok) return $this->_setDbError('sybase_select_db()');
 
     }
