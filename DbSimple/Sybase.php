@@ -186,7 +186,7 @@ class DbSimple_Sybase extends DbSimple_Database
 
             if (preg_match('/^\s* INSERT \s+/six', $queryMain[0])) {
                 // INSERT queries return generated ID.
-                $result = sybase_fetch_assoc(sybase_query("SELECT SCOPE_IDENTITY() AS insert_id", $this->link));
+                $result = sybase_fetch_assoc(sybase_query("SELECT @@identity insert_id", $this->link));
                 return isset($result['insert_id']) ? $result['insert_id'] : true;
             }
 
