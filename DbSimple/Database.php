@@ -763,7 +763,7 @@ abstract class DbSimple_Database extends DbSimple_LastError
                             if ($v instanceof DbSimple_SubQuery)
                                 $v = $v->get($this->_placeholderNativeArgs);
                             else
-                            $v = $v === null? 'NULL' : $this->escape($v);
+                                $v = $v === null? 'NULL' : $this->escape($v);
                             if (!is_int($k)) {
                                 $k = $this->escape($k, true);
                                 $parts[] = "$prefix$k=$v";

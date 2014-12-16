@@ -65,7 +65,11 @@ class DbSimple_Sybase extends DbSimple_Database
     function _performEscape($s, $isIdent=false)
     {
         if (!$isIdent) {
-            return "'" . str_replace("'", "''", $s) . "'";
+            if(is_int($s)) {
+                return $s;
+            } else {
+                return "'" . str_replace("'", "''", $s) . "'";
+            }
         } else {
             return str_replace(array('[',']'), '', $s);
         }
@@ -227,11 +231,13 @@ class DbSimple_Sybase extends DbSimple_Database
             $tf = $this->_getTextFields($result);
             foreach ($tf as $k => $t) {
                 $v = $row[$k];
-                if($v === ' ') {
-                    $v = '';
-                } else {
-                    if($this->lcharset && $this->rcharset) {
-                        $v = mb_convert_encoding($v, $this->lcharset, $this->rcharset);
+                if(!is_null($v)) {
+                    if ($v === ' ') { // Sybase bugfix
+                        $v = '';
+                    } else {
+                        if ($this->lcharset && $this->rcharset) {
+                            $v = mb_convert_encoding($v, $this->lcharset, $this->rcharset);
+                        }
                     }
                 }
                 $row[$k] = $v;
