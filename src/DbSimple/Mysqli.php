@@ -15,28 +15,30 @@
  *
  * @version 2.x $Id$
  */
-require_once dirname(__FILE__).'/Database.php';
+
+namespace DbSimple;
+
+use DbSimple\Database as DbSimpleDatabase;
 
 /**
  * Database class for MySQL.
  */
-class DbSimple_Mysqli extends DbSimple_Database
+class Mysqli extends DbSimpleDatabase
 {
+
 	private $link;
 	private $isMySQLnd;
 
-	public function DbSimple_Mysqli($dsn)
+	public function __construct($dsn)
 	{
 		$base = preg_replace('{^/}s', '', $dsn['path']);
-		if (!class_exists('mysqli'))
+		if(!class_exists('mysqli')){
 			return $this->_setLastError('-1', 'mysqli extension is not loaded', 'mysqli');
+        }
 
-		try
-		{
+		try{
 			$this->link = mysqli_init();
-
-			$this->link->options(MYSQLI_OPT_CONNECT_TIMEOUT,
-				isset($dsn['timeout']) && $dsn['timeout'] ? $dsn['timeout'] : 0);
+			$this->link->options(MYSQLI_OPT_CONNECT_TIMEOUT,isset($dsn['timeout']) && $dsn['timeout'] ? $dsn['timeout'] : 0);
 
 			$this->link->real_connect((isset($dsn['persist']) && $dsn['persist'])?'p:'.$dsn['host']:$dsn['host'],
 				$dsn['user'], isset($dsn['pass'])?$dsn['pass']:'', $base,
@@ -47,9 +49,7 @@ class DbSimple_Mysqli extends DbSimple_Database
 			$this->link->set_charset((isset($dsn['enc']) ? $dsn['enc'] : 'UTF8'));
 
 			$this->isMySQLnd = method_exists('mysqli_result', 'fetch_all');
-		}
-		catch (mysqli_sql_exception $e)
-		{
+		}catch (mysqli_sql_exception $e){
 			$this->_setLastError($e->getCode() , $e->getMessage(), 'new mysqli');
 		}
 	}
@@ -66,12 +66,9 @@ class DbSimple_Mysqli extends DbSimple_Database
 
 	protected function _performEscape($s, $isIdent=false)
 	{
-		if (!$isIdent)
-		{
+		if(!$isIdent){
 			return "'" .$this->link->escape_string($s). "'";
-		}
-		else
-		{
+		}else{
 			return "`" . str_replace('`', '``', $s) . "`";
 		}
 	}
@@ -94,30 +91,29 @@ class DbSimple_Mysqli extends DbSimple_Database
 	protected function _performQuery($queryMain)
 	{
 		$this->_lastQuery = $queryMain;
-
 		$this->_expandPlaceholders($queryMain, false);
-
 		$result = $this->link->query($queryMain[0]);
 
-		if (!$result)
+		if(!$result){
 			return $this->_setDbError($this->link, $queryMain[0]);
+        }
 
-		if ($this->link->errno!=0)
+		if($this->link->errno!=0){
 			return $this->_setDbError($this->link, $queryMain[0]);
+        }
 
-        if (preg_match('/^\s* INSERT \s+/six', $queryMain[0]))
+        if(preg_match('/^\s* INSERT \s+/six', $queryMain[0])){
             return $this->link->insert_id;
+        }
 
-		if ($this->link->field_count == 0)
+		if($this->link->field_count == 0){
 			return $this->link->affected_rows;
+        }
 
-		if ($this->isMySQLnd)
-		{
+		if($this->isMySQLnd){
 			$res = $result->fetch_all(MYSQLI_ASSOC);
 			$result->close();
-		}
-		else
-		{
+		}else{
 			$res = $result;
 		}
 
@@ -132,8 +128,9 @@ class DbSimple_Mysqli extends DbSimple_Database
 			// Prepare total calculation (if possible)
 			case 'CALC_TOTAL':
 				$m = null;
-				if (preg_match('/^(\s* SELECT)(.*)/six', $queryMain[0], $m))
-					$queryMain[0] = $m[1] . ' SQL_CALC_FOUND_ROWS' . $m[2];
+                if(preg_match('/^(\s* SELECT)(.*)/six', $queryMain[0], $m)){
+                    $queryMain[0] = $m[1] . ' SQL_CALC_FOUND_ROWS' . $m[2];
+                }
 				return true;
 
 			// Perform total calculation.
@@ -153,6 +150,7 @@ class DbSimple_Mysqli extends DbSimple_Database
 
 	protected function _performNewBlob($id=null)
 	{
+
 	}
 
 	protected function _performGetBlobFieldNames($result)
@@ -160,32 +158,33 @@ class DbSimple_Mysqli extends DbSimple_Database
 		return array();
 	}
 
-	 protected function _performFetch($result)
-    	{
-        	if ($this->isMySQLnd)
-        	 return $result;
+    protected function _performFetch($result)
+    {
+        if($this->isMySQLnd){
+            return $result;
+        }
 
-		 $row = $result->fetch_assoc();
-        	if ($this->link->error)
-            	return $this->_setDbError($this->link,$this->_lastQuery);
+        $row = $result->fetch_assoc();
+        if($this->link->error){
+            return $this->_setDbError($this->link,$this->_lastQuery);
+        }
 
-        	if ($row === null)
-        	{
-            		$this->clearStoredResults($this->link);
-            		$result->close();
-            		return null;
-        	}
+        if($row === null){
+            $this->clearStoredResults($this->link);
+            $result->close();
+            return null;
+        }
 
-        	return $row;
-    	}
+        return $row;
+    }
 
-    	function clearStoredResults($mysqli_link){
-		 while($mysqli_link->next_result()){
-        	  	if($l_result = $mysqli_link->store_result()){
-        	     	$l_result->free();
-        	   }
-	 	}
-	 }
+    function clearStoredResults($mysqli_link){
+        while($mysqli_link->next_result()){
+            $l_result = $mysqli_link->store_result();
+            if($l_result){
+                $l_result->free();
+            }
+        }
+    }
+
 }
-
-?>
