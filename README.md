@@ -10,7 +10,7 @@ Add to your composer.json
     "repositories":[
         {
             "type": "git",
-            "url": "https://github.com/plumbum/dbsimple.git"
+            "url": "https://github.com/Ambalus/DbSimple.git"
         }
     ]
 ```
@@ -28,9 +28,9 @@ Example
 ```php
 <?php
 
-require_once 'vendor/autoload.php';
+require_once './vendor/autoload.php';
 
-$DB = DbSimple_Generic::connect("sybase://user:password@127.0.0.1:5000/db_name?rcharset=cp1251&lcharset=utf8");
+$DB = DbSimple\Generic::connect("sybase://user:password@127.0.0.1:5000/db_name?rcharset=cp1251&lcharset=utf8");
 
 $r = $DB->query("set ROWCOUNT 10");
 
