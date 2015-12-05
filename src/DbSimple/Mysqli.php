@@ -170,7 +170,7 @@ class Mysqli extends DbSimpleDatabase
         }
 
         if($row === null){
-            $this->clearStoredResults($this->link);
+            //$this->clearStoredResults($this->link);
             $result->close();
             return null;
         }
@@ -178,13 +178,13 @@ class Mysqli extends DbSimpleDatabase
         return $row;
     }
 
-    function clearStoredResults($mysqli_link){
+    /*function clearStoredResults($mysqli_link){
         while($mysqli_link->next_result()){
             $l_result = $mysqli_link->store_result();
             if($l_result){
                 $l_result->free();
             }
         }
-    }
+    }*/
 
 }
