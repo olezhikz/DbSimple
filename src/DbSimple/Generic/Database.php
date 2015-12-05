@@ -492,7 +492,7 @@ class Database extends DbSimpleGenericLastError
                 $blobFieldNames = $this->_performGetBlobFieldNames($result);
                 foreach($blobFieldNames as $name){
                     for($r = count($rows)-1; $r>=0; $r--){
-                        $rows[$r][$name] =& $this->_performNewBlob($rows[$r][$name]);
+                        $rows[$r][$name] = $this->_performNewBlob($rows[$r][$name]);
                     }
                 }
             }
@@ -836,17 +836,17 @@ class Database extends DbSimpleGenericLastError
         $result = array();
         foreach($rows as $row){
             // Iterate over all of ARRAY_KEY* fields and build array dimensions.
-            $current =& $result;
+            $current = $result;
             foreach($arrayKeys as $ak){
                 $key = $row[$ak];
                 unset($row[$ak]); // remove ARRAY_KEY* field from result row
                 if($key !== null){
-                    $current =& $current[$key];
+                    $current = $current[$key];
                 }else{
                     // IF ARRAY_KEY field === null, use array auto-indices.
                     $tmp = array();
-                    $current[] =& $tmp;
-                    $current =& $tmp;
+                    $current[] = $tmp;
+                    $current = $tmp;
                     unset($tmp); // we use $tmp, because don't know the value of auto-index
                 }
             }
@@ -869,7 +869,7 @@ class Database extends DbSimpleGenericLastError
         $ids = array();
         // Collect who are children of whom.
         foreach($rows as $i=>$r){
-            $row =& $rows[$i];
+            $row = $rows[$i];
             $id = $row[$idName];
             if($id === null){
                 // Rows without an ID are totally invalid and makes the result tree to 
@@ -881,24 +881,24 @@ class Database extends DbSimpleGenericLastError
             if($id == $pid){
                 $pid = null;
             }
-            $children[$pid][$id] =& $row;
+            $children[$pid][$id] = $row;
             if(!isset($children[$id])){
                 $children[$id] = array();
             }
-            $row['childNodes'] =& $children[$id];
+            $row['childNodes'] = $children[$id];
             $ids[$id] = true;
         }
         // Root elements are elements with non-found PIDs.
         $forest = array();
         foreach($rows as $i=>$r){
-            $row =& $rows[$i];
+            $row = $rows[$i];
             $id = $row[$idName];
             $pid = $row[$pidName];
             if($pid == $id){
                 $pid = null;
             }
             if(!isset($ids[$pid])){
-                $forest[$row[$idName]] =& $row;
+                $forest[$row[$idName]] = $row;
             }
             unset($row[$idName]);
             unset($row[$pidName]);
@@ -936,7 +936,7 @@ class Database extends DbSimpleGenericLastError
         }
         $this->_expandPlaceholders($query, false);
         $args = array();
-        $args[] =& $this;
+        $args[] = $this;
         $args[] = $query[0];
         $args[] = $noTrace? null : $this->findLibraryCaller();
         return call_user_func_array($this->_logger, $args);

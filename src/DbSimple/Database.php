@@ -159,8 +159,12 @@ abstract class Database extends DbSimple_LastError
         $args = func_get_args();
         $total = false;
         $rows = $this->_query($args, $total);
-        if(!is_array($rows)) return $rows;
-        if(!count($rows)) return array();
+        if(!is_array($rows)){
+            return $rows;
+        }
+        if(!count($rows)){
+            return array();
+        }
         reset($rows);
         return current($rows);
     }
@@ -174,7 +178,9 @@ abstract class Database extends DbSimple_LastError
         $args = func_get_args();
         $total = false;
         $rows = $this->_query($args, $total);
-        if(!is_array($rows)) return $rows;
+        if(!is_array($rows)){
+            return $rows;
+        }
         $this->_shrinkLastArrayDimensionCallback($rows);
         return $rows;
     }
@@ -189,11 +195,17 @@ abstract class Database extends DbSimple_LastError
         $args = func_get_args();
         $total = false;
         $rows = $this->_query($args, $total);
-        if(!is_array($rows)) return $rows;
-        if(!count($rows)) return null;
+        if(!is_array($rows)){
+            return $rows;
+        }
+        if(!count($rows)){
+            return null;
+        }
         reset($rows);
         $row = current($rows);
-        if(!is_array($row)) return $row;
+        if(!is_array($row)){
+            return $row;
+        }
         reset($row);
         return current($row);
     }
@@ -220,7 +232,6 @@ abstract class Database extends DbSimple_LastError
         return $this->_performEscape($s, $isIdent);
     }
 
-
     /**
      * DbSimple_SubQuery subquery(string $query [, $arg1] [,$arg2] ...)
      * Выполняет разворачивание плейсхолдеров без коннекта к базе
@@ -233,7 +244,6 @@ abstract class Database extends DbSimple_LastError
         $this->_expandPlaceholders($args,$this->_placeholderNativeArgs !== null);
         return new DbSimple_SubQuery($args);
     }
-
 
     /**
      * callback setLogger(callback $logger)
@@ -266,7 +276,9 @@ abstract class Database extends DbSimple_LastError
     public function setIdentPrefix($prx)
     {
         $old = $this->_identPrefix;
-        if($prx !== null) $this->_identPrefix = $prx;
+        if($prx !== null){
+            $this->_identPrefix = $prx;
+        }
         return $old;
     }
 
@@ -277,7 +289,9 @@ abstract class Database extends DbSimple_LastError
     public function setCachePrefix($prx)
     {
         $old = $this->_cachePrefix;
-        if($prx !== null) $this->_cachePrefix = $prx;
+        if($prx !== null){
+            $this->_cachePrefix = $prx;
+        }
         return $old;
     }
 
@@ -305,7 +319,6 @@ abstract class Database extends DbSimple_LastError
     {
         return $this->_statistics;
     }
-
 
     /**
      * string _performEscape(mixed $s, bool $isIdent=false)
@@ -395,7 +408,6 @@ abstract class Database extends DbSimple_LastError
         return '?';
     }
 
-
     /**
      * array parseDSN(mixed $dsn)
      * Parse a data source name.
@@ -403,18 +415,21 @@ abstract class Database extends DbSimple_LastError
      */
     protected function parseDSN($dsn)
     {
-        if(is_array($dsn)) return $dsn;
-        $parsed = @parse_url($dsn);
-        if(!$parsed) return null;
+        if(is_array($dsn)){
+            return $dsn;
+        }
+        $parsed = parse_url($dsn);
+        if(!$parsed){
+            return null;
+        }
         $params = null;
-        if(!empty($parsed['query'])) {
+        if(!empty($parsed['query'])){
             parse_str($parsed['query'], $params);
             $parsed += $params;
         }
         $parsed['dsn'] = $dsn;
         return $parsed;
     }
-
 
     /**
      * array _query($query, &$total)
@@ -428,15 +443,14 @@ abstract class Database extends DbSimple_LastError
         $this->attributes = $this->_transformQuery($query, 'GET_ATTRIBUTES');
 
         // Modify query if needed for total counting.
-        if($total)
+        if($total){
             $this->_transformQuery($query, 'CALC_TOTAL');
+        }
 
         $rows = false;
         $cache_it = false;
         // Кешер у нас либо null либо соответствует Zend интерфейсу
-        if(!empty($this->attributes['CACHE']) && $this->_cacher)
-        {
-
+        if(!empty($this->attributes['CACHE']) && $this->_cacher){
             $hash = $this->_cachePrefix . md5(serialize($query));
             // Getting data from cache if possible
             $fetchTime = $firstFetchTime = 0;
@@ -447,7 +461,6 @@ abstract class Database extends DbSimple_LastError
             $invalCache = isset($cacheData['invalCache']) ? $cacheData['invalCache'] : null;
             $result     = isset($cacheData['result'])     ? $cacheData['result']     : null;
             $rows       = isset($cacheData['rows'])       ? $cacheData['rows']       : null;
-
 
             $cache_params = $this->attributes['CACHE'];
 
@@ -474,7 +487,7 @@ abstract class Database extends DbSimple_LastError
             $uniq_key = null;
 
             // UNIQ_KEY calculation
-            if(!empty($cache_params)) {
+            if(!empty($cache_params)){
                 $dummy = null;
                 // There is no need in query, cos' needle in $this->attributes['CACHE']
                 $this->_transformQuery($dummy, 'UNIQ_KEY');
@@ -485,15 +498,15 @@ abstract class Database extends DbSimple_LastError
             $ok = empty($ttl) || $cacheData;
 
             // Invalidate cache?
-            if($ok && $uniq_key == $invalCache) {
+            if($ok && $uniq_key == $invalCache){
                 $this->_logQuery($query);
                 $this->_logQueryStat($queryTime, $fetchTime, $firstFetchTime, $rows);
-
+            }else{
+                $cache_it = true;
             }
-            else $cache_it = true;
         }
 
-        if(false === $rows || true === $cache_it) {
+        if(false === $rows || true === $cache_it){
             $this->_logQuery($query);
 
             // Run the query (counting time).
@@ -501,20 +514,20 @@ abstract class Database extends DbSimple_LastError
             $result = $this->_performQuery($query);
             $fetchTime = $firstFetchTime = 0;
 
-            if(is_resource($result) || is_object($result)) {
+            if(is_resource($result) || is_object($result)){
                 $rows = array();
                 // Fetch result row by row.
                 $fStart = microtime(true);
                 $row = $this->_performFetch($result);
                 $firstFetchTime = microtime(true) - $fStart;
-                if(!empty($row)) {
+                if(!empty($row)){
                     $rows[] = $row;
-                    while ($row=$this->_performFetch($result)) {
+                    while ($row=$this->_performFetch($result)){
                         $rows[] = $row;
                     }
                 }
                 $fetchTime = microtime(true) - $fStart;
-            } else {
+            }else{
                 $rows = $result;
             }
             $queryTime = microtime(true) - $qStart;
@@ -523,11 +536,11 @@ abstract class Database extends DbSimple_LastError
             $this->_logQueryStat($queryTime, $fetchTime, $firstFetchTime, $rows);
 
             // Prepare BLOB objects if needed.
-            if(is_array($rows) && !empty($this->attributes['BLOB_OBJ'])) {
+            if(is_array($rows) && !empty($this->attributes['BLOB_OBJ'])){
                 $blobFieldNames = $this->_performGetBlobFieldNames($result);
-                foreach ($blobFieldNames as $name) {
-                    for($r = count($rows)-1; $r>=0; $r--) {
-                        $rows[$r][$name] =& $this->_performNewBlob($rows[$r][$name]);
+                foreach ($blobFieldNames as $name){
+                    for($r = count($rows)-1; $r>=0; $r--){
+                        $rows[$r][$name] = $this->_performNewBlob($rows[$r][$name]);
                     }
                 }
             }
@@ -536,8 +549,7 @@ abstract class Database extends DbSimple_LastError
             $result = $this->_transformResult($rows);
 
             // Storing data in cache
-            if($cache_it && $this->_cacher)
-            {
+            if($cache_it && $this->_cacher){
                 $this->_cacher->save(
                     serialize(array(
                         'invalCache' => $uniq_key,
@@ -552,21 +564,20 @@ abstract class Database extends DbSimple_LastError
 
         }
         // Count total number of rows if needed.
-        if(is_array($result) && $total) {
+        if(is_array($result) && $total){
             $this->_transformQuery($query, 'GET_TOTAL');
             $total = call_user_func_array(array(&$this, 'selectCell'), $query);
         }
 
-        if($this->_className)
-        {
-            foreach($result as $k=>$v)
+        if($this->_className){
+            foreach($result as $k=>$v){
                 $result[$k] = new $this->_className($v);
+            }
             $this->_className = '';
         }
 
         return $result;
     }
-
 
     /**
      * mixed _transformQuery(array &$query, string $how)
@@ -578,15 +589,17 @@ abstract class Database extends DbSimple_LastError
     {
         // Do overriden transformation.
         $result = $this->_performTransformQuery($query, $how);
-        if($result === true) return $result;
+        if($result === true){
+            return $result;
+        }
         // Common transformations.
-        switch ($how) {
+        switch ($how){
             case 'GET_ATTRIBUTES':
                 // Extract query attributes.
                 $options = array();
                 $q = $query[0];
                 $m = null;
-                while (preg_match('/^ \s* -- [ \t]+ (\w+): ([^\r\n]+) [\r\n]* /sx', $q, $m)) {
+                while (preg_match('/^ \s* -- [ \t]+ (\w+): ([^\r\n]+) [\r\n]* /sx', $q, $m)){
                     $options[$m[1]] = trim($m[2]);
                     $q = substr($q, strlen($m[0]));
                 }
@@ -594,7 +607,7 @@ abstract class Database extends DbSimple_LastError
             case 'UNIQ_KEY':
                 $q = $this->attributes['CACHE'];
                 $query = array();
-                while(preg_match('/(\w+)\.\w+/sx', $q, $m)) {
+                while(preg_match('/(\w+)\.\w+/sx', $q, $m)){
                     $query[] = 'SELECT MAX('.$m[0].') AS M, COUNT(*) AS C FROM '.$m[1];
                     $q = substr($q, strlen($m[0]));
                 }
@@ -606,7 +619,6 @@ abstract class Database extends DbSimple_LastError
         $this->_setLastError(-1, "No such transform type: $how", $query);
     }
 
-
     /**
      * void _expandPlaceholders(array &$queryAndArgs, bool $useNative=false)
      * Replace placeholders by quoted values.
@@ -615,16 +627,16 @@ abstract class Database extends DbSimple_LastError
     protected function _expandPlaceholders(&$queryAndArgs, $useNative=false)
     {
         $cacheCode = null;
-        if($this->_logger) {
+        if($this->_logger){
             // Serialize is much faster than placeholder expansion. So use caching.
             $cacheCode = md5(serialize($queryAndArgs) . '|' . $useNative . '|' . $this->_identPrefix);
-            if(isset($this->_placeholderCache[$cacheCode])) {
+            if(isset($this->_placeholderCache[$cacheCode])){
                 $queryAndArgs = $this->_placeholderCache[$cacheCode];
                 return;
             }
         }
 
-        if(!is_array($queryAndArgs)) {
+        if(!is_array($queryAndArgs)){
             $queryAndArgs = array($queryAndArgs);
         }
 
@@ -637,18 +649,17 @@ abstract class Database extends DbSimple_LastError
         $this->_placeholderNoValueFound = false;
         $query = $this->_expandPlaceholdersFlow($query);
 
-        if($useNative) {
+        if($useNative){
             array_unshift($this->_placeholderNativeArgs, $query);
             $queryAndArgs = $this->_placeholderNativeArgs;
-        } else {
+        }else{
             $queryAndArgs = array($query);
         }
 
-        if($cacheCode) {
+        if($cacheCode){
             $this->_placeholderCache[$cacheCode] = $queryAndArgs;
         }
     }
-
 
     /**
      * Do real placeholder processing.
@@ -692,11 +703,11 @@ abstract class Database extends DbSimple_LastError
         return $query;
     }
 
-    static $join = array(
-        '|' => array('inner' => ' AND ', 'outer' => ') OR (',),
-        '&' => array('inner' => ' OR ', 'outer' => ') AND (',),
-        'a' => array('inner' => ', ', 'outer' => '), (',),
-    );
+    static $join = [
+        '|' => ['inner' => ' AND ', 'outer' => ') OR (',],
+        '&' => ['inner' => ' OR ', 'outer' => ') AND (',],
+        'a' => ['inner' => ', ', 'outer' => '), (',],
+    ];
 
     /**
      * string _expandPlaceholdersCallback(list $m)
@@ -705,64 +716,71 @@ abstract class Database extends DbSimple_LastError
     private function _expandPlaceholdersCallback($m)
     {
         // Placeholder.
-        if(!empty($m[3])) {
+        if(!empty($m[3])){
             $type = $m[4];
 
             // Idenifier prefix.
-            if($type == '_') {
+            if($type == '_'){
                 return $this->_identPrefix;
             }
 
             // Value-based placeholder.
-            if(!$this->_placeholderArgs) return 'DBSIMPLE_ERROR_NO_VALUE';
+            if(!$this->_placeholderArgs){
+                return 'DBSIMPLE_ERROR_NO_VALUE';
+            }
             $value = array_pop($this->_placeholderArgs);
 
             // Skip this value?
-            if($value === DBSIMPLE_SKIP) {
+            if($value === DBSIMPLE_SKIP){
                 $this->_placeholderNoValueFound = true;
                 return '';
             }
 
             // First process guaranteed non-native placeholders.
-            switch ($type) {
+            switch ($type){
                 case 's':
-                    if(!($value instanceof DbSimple_SubQuery))
+                    if(!($value instanceof DbSimple_SubQuery)){
                         return 'DBSIMPLE_ERROR_VALUE_NOT_SUBQUERY';
+                    }
                     return $value->get($this->_placeholderNativeArgs);
                 case '|':
                 case '&':
                 case 'a':
-                    if(!$value) $this->_placeholderNoValueFound = true;
-                    if(!is_array($value)) return 'DBSIMPLE_ERROR_VALUE_NOT_ARRAY';
+                    if(!$value){
+                        $this->_placeholderNoValueFound = true;
+                    }
+                    if(!is_array($value)){
+                        return 'DBSIMPLE_ERROR_VALUE_NOT_ARRAY';
+                    }
                     $parts = array();
                     $multi = array(); //массив для двойной вложенности
                     $mult = $type!='a' || is_int(key($value)) && is_array(current($value));
-                    foreach ($value as $prefix => $field) {
+                    foreach ($value as $prefix => $field){
                         //превращаем $value в двумерный нуменованный массив
-                        if(!is_array($field)) {
+                        if(!is_array($field)){
                             $field = array($prefix => $field);
                             $prefix = 0;
                         }
                         $prefix = is_int($prefix) ? '' :
                             $this->escape($this->_addPrefix2Table($prefix), true) . '.';
                         //для мультиинсерта очищаем ключи - их быть не может по синтаксису
-                        if($mult && $type=='a')
+                        if($mult && $type=='a'){
                             $field = array_values($field);
-                        foreach ($field as $k => $v)
-                        {
-                            if($v instanceof DbSimple_SubQuery)
+                        }
+                        foreach ($field as $k => $v){
+                            if($v instanceof DbSimple_SubQuery){
                                 $v = $v->get($this->_placeholderNativeArgs);
-                            else
-                                $v = $v === null? 'NULL' : $this->escape($v);
-                            if(!is_int($k)) {
+                            }else{
+                                $v = ($v === null) ? 'NULL' : $this->escape($v);
+                            }
+                            if(!is_int($k)){
                                 $k = $this->escape($k, true);
                                 $parts[] = "$prefix$k=$v";
-                            } else {
+                            }else{
                                 $parts[] = $v;
                             }
                         }
-                        if($mult)
-                        {
+                        if($mult){
                             $multi[] = join(self::$join[$type]['inner'], $parts);
                             $parts = array();
                         }
@@ -770,28 +788,31 @@ abstract class Database extends DbSimple_LastError
                     return $mult ? join(self::$join[$type]['outer'], $multi) : join(', ', $parts);
                 case '#':
                     // Identifier.
-                    if(!is_array($value))
-                    {
-                        if($value instanceof DbSimple_SubQuery)
+                    if(!is_array($value)){
+                        if($value instanceof DbSimple_SubQuery){
                             return $value->get($this->_placeholderNativeArgs);
+                        }
                         return $this->escape($this->_addPrefix2Table($value), true);
                     }
                     $parts = array();
-                    foreach ($value as $table => $identifiers)
-                    {
-                        if(!is_array($identifiers))
-                            $identifiers = array($identifiers);
+                    foreach ($value as $table => $identifiers){
+                        if(!is_array($identifiers)){
+                            $identifiers = [$identifiers];
+                        }
                         $prefix = '';
-                        if(!is_int($table))
+                        if(!is_int($table)){
                             $prefix = $this->escape($this->_addPrefix2Table($table), true) . '.';
-                        foreach ($identifiers as $identifier)
-                            if($identifier instanceof DbSimple_SubQuery)
+                        }
+                        foreach ($identifiers as $identifier){
+                            if($identifier instanceof DbSimple_SubQuery){
                                 $parts[] = $identifier->get($this->_placeholderNativeArgs);
-                            elseif(!is_string($identifier))
+                            }elseif(!is_string($identifier)){
                                 return 'DBSIMPLE_ERROR_ARRAY_VALUE_NOT_STRING';
-                            else
+                            }else{
                                 $parts[] = $prefix . ($identifier=='*' ? '*' :
                                     $this->escape($this->_addPrefix2Table($identifier), true));
+                            }
+                        }
                     }
                     return join(', ', $parts);
                 case 'n':
@@ -800,16 +821,20 @@ abstract class Database extends DbSimple_LastError
             }
 
             // Native arguments are not processed.
-            if($this->_placeholderNativeArgs !== null) {
+            if($this->_placeholderNativeArgs !== null){
                 $this->_placeholderNativeArgs[] = $value;
                 return $this->_performGetNativePlaceholderMarker(count($this->_placeholderNativeArgs) - 1);
             }
 
             // In non-native mode arguments are quoted.
-            if($value === null) return 'NULL';
-            switch ($type) {
+            if($value === null){
+                return 'NULL';
+            }
+            switch ($type){
                 case '':
-                    if(!is_scalar($value)) return 'DBSIMPLE_ERROR_VALUE_NOT_SCALAR';
+                    if(!is_scalar($value)){
+                        return 'DBSIMPLE_ERROR_VALUE_NOT_SCALAR';
+                    }
                     return $this->escape($value);
                 case 'd':
                     return intval($value);
@@ -821,28 +846,29 @@ abstract class Database extends DbSimple_LastError
         }
 
         // Optional block.
-        if(isset($m[1]) && strlen($block=$m[1]))
-        {
+        if(isset($m[1]) && strlen($block=$m[1])){
             $prev  = $this->_placeholderNoValueFound;
-            if($this->_placeholderNativeArgs !== null)
+            if($this->_placeholderNativeArgs !== null){
                 $prevPh = $this->_placeholderNativeArgs;
+            }
 
             // Проверка на {?  } - условный блок
             $skip = false;
-            if($m[2]=='?')
-            {
+            if($m[2]=='?'){
                 $skip = array_pop($this->_placeholderArgs) === DBSIMPLE_SKIP;
                 $block[0] = ' ';
             }
 
             $block = $this->_expandOptionalBlock($block);
-
-            if($skip)
+            if($skip){
                 $block = '';
+            }
 
-            if($this->_placeholderNativeArgs !== null)
-                if($this->_placeholderNoValueFound)
+            if($this->_placeholderNativeArgs !== null){
+                if($this->_placeholderNoValueFound){
                     $this->_placeholderNativeArgs = $prevPh;
+                }
+            }
             $this->_placeholderNoValueFound = $prev; // recurrent-safe
             return $block;
         }
@@ -850,7 +876,6 @@ abstract class Database extends DbSimple_LastError
         // Default: skipped part of the string.
         return $m[0];
     }
-
 
     /**
      * Заменяет ?_ на текущий префикс
@@ -860,8 +885,9 @@ abstract class Database extends DbSimple_LastError
      */
     private function _addPrefix2Table($table)
     {
-        if(substr($table, 0, 2) == '?_')
+        if(substr($table, 0, 2) == '?_'){
             $table = $this->_identPrefix . substr($table, 2);
+        }
         return $table;
     }
 
@@ -879,68 +905,62 @@ abstract class Database extends DbSimple_LastError
         $sub=0;
         $exp = explode('|',$block);
         // Оптимизация, так как в большинстве случаев | не используется
-        if(count($exp)==1)
+        if(count($exp)==1){
             $alts=$exp;
-        else
-            foreach ($exp as $v)
-            {
+        }else{
+            foreach ($exp as $v){
                 // Реализуем автоматный магазин для нахождения нужной скобки
                 // На суммарную парность скобок проверять нет необходимости - об этом заботится регулярка
                 $sub+=substr_count($v,'{');
                 $sub-=substr_count($v,'}');
-                if($sub>0)
+                if($sub>0){
                     $alt.=$v.'|';
-                else
-                {
+                }else{
                     $alts[]=$alt.$v;
                     $alt='';
                 }
             }
+        }
         $r='';
-        foreach ($alts as $block)
-        {
+        foreach ($alts as $block){
             $this->_placeholderNoValueFound = false;
             $block = $this->_expandPlaceholdersFlow($block);
             // Необходимо пройти все блоки, так как если пропустить оставшиесь,
             // то это нарушит порядок подставляемых значений
-            if($this->_placeholderNoValueFound == false && $r=='')
+            if($this->_placeholderNoValueFound == false && $r==''){
                 $r = ' '.$block.' ';
+            }
         }
         return $r;
     }
-
 
     /**
      * void _setLastError($code, $msg, $query)
      * Set last database error context.
      * Aditionally expand placeholders.
      */
-    protected function _setLastError($code, $msg, $query)
-    {
-        if(is_array($query)) {
+    protected function _setLastError($code, $msg, $query){
+        if(is_array($query)){
             $this->_expandPlaceholders($query, false);
             $query = $query[0];
         }
         return parent::_setLastError($code, $msg, $query);
     }
 
-
     /**
      * Convert SQL field-list to COUNT(...) clause
      * (e.g. 'DISTINCT a AS aa, b AS bb' -> 'COUNT(DISTINCT a, b)').
      */
-    protected function _fieldList2Count($fields)
-    {
+    protected function _fieldList2Count($fields){
         $m = null;
-        if(preg_match('/^\s* DISTINCT \s* (.*)/sx', $fields, $m)) {
+        if(preg_match('/^\s* DISTINCT \s* (.*)/sx', $fields, $m)){
             $fields = $m[1];
             $fields = preg_replace('/\s+ AS \s+ .*? (?=,|$)/sx', '', $fields);
             return "COUNT(DISTINCT $fields)";
-        } else {
+        }else{
             return 'COUNT(*)';
         }
     }
-
 
     /**
      * array _transformResult(list $rows)
@@ -949,29 +969,33 @@ abstract class Database extends DbSimple_LastError
     private function _transformResult($rows)
     {
         // is not array
-        if(!is_array($rows) || !$rows)
+        if(!is_array($rows) || !$rows){
             return $rows;
+        }
 
         // Find ARRAY_KEY* AND PARENT_KEY fields in field list.
         $pk = null;
         $ak = array();
-        foreach (array_keys(current($rows)) as $fieldName)
-            if(0 == strncasecmp($fieldName, DBSIMPLE_ARRAY_KEY, strlen(DBSIMPLE_ARRAY_KEY)))
+        foreach (array_keys(current($rows)) as $fieldName){
+            if(0 == strncasecmp($fieldName, DBSIMPLE_ARRAY_KEY, strlen(DBSIMPLE_ARRAY_KEY))){
                 $ak[] = $fieldName;
-            elseif(0 == strncasecmp($fieldName, DBSIMPLE_PARENT_KEY, strlen(DBSIMPLE_PARENT_KEY)))
+            }elseif(0 == strncasecmp($fieldName, DBSIMPLE_PARENT_KEY, strlen(DBSIMPLE_PARENT_KEY))){
                 $pk = $fieldName;
+            }
+        }
 
-        if(!$ak)
+        if(!$ak){
             return $rows;
+        }
 
         natsort($ak); // sort ARRAY_KEY* using natural comparision
         // Tree-based array? Fields: ARRAY_KEY, PARENT_KEY
-        if($pk !== null)
+        if($pk !== null){
             return $this->_transformResultToForest($rows, $ak[0], $pk);
+        }
         // Key-based array? Fields: ARRAY_KEY.
         return $this->_transformResultToHash($rows, $ak);
     }
-
 
     /**
      * Converts rowset to key-based array.
@@ -983,15 +1007,15 @@ abstract class Database extends DbSimple_LastError
     private function _transformResultToHash(array $rows, array $arrayKeys)
     {
         $result = array();
-        foreach ($rows as $row) {
+        foreach ($rows as $row){
             // Iterate over all of ARRAY_KEY* fields and build array dimensions.
             $current =& $result;
-            foreach ($arrayKeys as $ak) {
+            foreach ($arrayKeys as $ak){
                 $key = $row[$ak];
                 unset($row[$ak]); // remove ARRAY_KEY* field from result row
-                if($key !== null) {
+                if($key !== null){
                     $current =& $current[$key];
-                } else {
+                }else{
                     // IF ARRAY_KEY field === null, use array auto-indices.
                     $tmp = array();
                     $current[] =& $tmp;
@@ -1018,38 +1042,43 @@ abstract class Database extends DbSimple_LastError
         $children = array(); // children of each ID
         $ids = array();
         // Collect who are children of whom.
-        foreach ($rows as $i=>$r) {
+        foreach ($rows as $i=>$r){
             $row =& $rows[$i];
             $id = $row[$idName];
-            if($id === null) {
+            if($id === null){
                 // Rows without an ID are totally invalid and makes the result tree to
                 // be empty (because PARENT_ID = null means "a root of the tree"). So
                 // skip them totally.
                 continue;
             }
             $pid = $row[$pidName];
-            if($id == $pid) $pid = null;
-            $children[$pid][$id] =& $row;
-            if(!isset($children[$id])) $children[$id] = array();
-            $row['childNodes'] =& $children[$id];
+            if($id == $pid){
+                $pid = null;
+            }
+            $children[$pid][$id] = $row;
+            if(!isset($children[$id])){
+                $children[$id] = array();
+            }
+            $row['childNodes'] = $children[$id];
             $ids[$id] = true;
         }
         // Root elements are elements with non-found PIDs.
         $forest = array();
-        foreach ($rows as $i=>$r) {
+        foreach ($rows as $i=>$r){
             $row =& $rows[$i];
             $id = $row[$idName];
             $pid = $row[$pidName];
-            if($pid == $id) $pid = null;
-            if(!isset($ids[$pid])) {
-                $forest[$row[$idName]] =& $row;
+            if($pid == $id){
+                $pid = null;
+            }
+            if(!isset($ids[$pid])){
+                $forest[$row[$idName]] = $row;
             }
             unset($row[$idName]);
             unset($row[$pidName]);
         }
         return $forest;
     }
-
 
     /**
      * Replaces the last array in a multi-dimensional array $V by its first value.
@@ -1058,15 +1087,16 @@ abstract class Database extends DbSimple_LastError
      */
     private function _shrinkLastArrayDimensionCallback(&$v)
     {
-        if(!$v) return;
+        if(!$v){
+            return;
+        }
         reset($v);
-        if(!is_array($firstCell = current($v))) {
+        if(!is_array($firstCell = current($v))){
             $v = $firstCell;
-        } else {
+        }else{
             array_walk($v, array(&$this, '_shrinkLastArrayDimensionCallback'));
         }
     }
-
 
     /**
      * void _logQuery($query, $noTrace=false)
@@ -1075,7 +1105,9 @@ abstract class Database extends DbSimple_LastError
      */
     protected function _logQuery($query, $noTrace=false)
     {
-        if(!$this->_logger) return;
+        if(!$this->_logger){
+            return;
+        }
         $this->_expandPlaceholders($query, false);
         $args = array();
         $args[] =& $this;
@@ -1083,7 +1115,6 @@ abstract class Database extends DbSimple_LastError
         $args[] = $noTrace? null : $this->findLibraryCaller();
         return call_user_func_array($this->_logger, $args);
     }
-
 
     /**
      * void _logQueryStat($queryTime, $fetchTime, $firstFetchTime, $rows)
@@ -1096,40 +1127,42 @@ abstract class Database extends DbSimple_LastError
         $this->_statistics['count']++;
 
         // If no logger, economize CPU resources and actually log nothing.
-        if(!$this->_logger) return;
+        if(!$this->_logger){
+            return;
+        }
 
         $dt = round($queryTime * 1000);
         $firstFetchTime = round($firstFetchTime*1000);
         $tailFetchTime = round($fetchTime * 1000) - $firstFetchTime;
         $log = "  -- ";
-        if($firstFetchTime + $tailFetchTime) {
+        if($firstFetchTime + $tailFetchTime){
             $log = sprintf("  -- %d ms = %d+%d".($tailFetchTime? "+%d" : ""), $dt, $dt-$firstFetchTime-$tailFetchTime, $firstFetchTime, $tailFetchTime);
-        } else {
+        }else{
             $log = sprintf("  -- %d ms", $dt);
         }
         $log .= "; returned ";
 
-        if(!is_array($rows)) {
+        if(!is_array($rows)){
             $log .= $this->escape($rows);
-        } else {
+        }else{
             $detailed = null;
-            if(count($rows) == 1) {
+            if(count($rows) == 1){
                 $len = 0;
                 $values = array();
-                foreach ($rows[0] as $k=>$v) {
+                foreach($rows[0] as $k => $v){
                     $len += strlen($v);
-                    if($len > $this->MAX_LOG_ROW_LEN) {
+                    if($len > $this->MAX_LOG_ROW_LEN){
                         break;
                     }
                     $values[] = $v === null? 'NULL' : $this->escape($v);
                 }
-                if($len <= $this->MAX_LOG_ROW_LEN) {
+                if($len <= $this->MAX_LOG_ROW_LEN){
                     $detailed = "(" . preg_replace("/\r?\n/", "\\n", join(', ', $values)) . ")";
                 }
             }
-            if($detailed) {
+            if($detailed){
                 $log .= $detailed;
-            } else {
+            }else{
                 $log .= count($rows). " row(s)";
             }
         }
@@ -1273,7 +1306,7 @@ abstract class LastError
 
         $this->_logQuery("  -- error #".$code.": ".preg_replace('/(\r?\n)+/s', ' ', $this->errmsg));
 
-        if(is_callable($this->errorHandler)) {
+        if(is_callable($this->errorHandler)){
             call_user_func($this->errorHandler, $this->errmsg, $this->error);
         }
 
@@ -1293,7 +1326,7 @@ abstract class LastError
         $this->errorHandler = $handler;
         // In case of setting first error handler for already existed
         // error - call the handler now (usual after connect()).
-        if(!$prev && $this->error && $this->errorHandler) {
+        if(!$prev && $this->error && $this->errorHandler){
             call_user_func($this->errorHandler, $this->errmsg, $this->error);
         }
         return $prev;
@@ -1353,7 +1386,7 @@ abstract class LastError
             $next = isset($trace[$i+1])? $trace[$i+1] : null;
 
             // Dummy frame before call_user_func* frames.
-            if(!isset($t['file'])) {
+            if(!isset($t['file'])){
                 $t['over_function'] = $trace[$i+1]['function'];
                 $t = $t + $trace[$i+1];
                 $trace[$i+1] = null; // skip call_user_func on next iteration
@@ -1368,7 +1401,7 @@ abstract class LastError
             // 'class' and 'function' field of next frame define where
             // this frame function situated. Skip frames for functions
             // situated in ignored places.
-            if($ignoresRe && $next) {
+            if($ignoresRe && $next){
                 // Name of function "inside which" frame was generated.
                 $frameCaller = (isset($next['class'])? $next['class'].'::' : '') . (isset($next['function'])? $next['function'] : '');
                 if(preg_match($ignoresRe, $frameCaller)){

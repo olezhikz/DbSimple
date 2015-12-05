@@ -22,10 +22,11 @@
  * They never give us update conflicts (unlike others)!
  * Used by default.
  */
-define('IBASE_BEST_TRANSACTION', IBASE_COMMITTED + IBASE_WAIT + IBASE_REC_VERSION);
-define('IBASE_BEST_FETCH', IBASE_UNIXTIME);
 
 namespace DbSimple;
+
+define('IBASE_BEST_TRANSACTION', IBASE_COMMITTED + IBASE_WAIT + IBASE_REC_VERSION);
+define('IBASE_BEST_FETCH', IBASE_UNIXTIME);
 
 use DbSimple\Generic as DbSimpleGeneric;
 use DbSimple\Generic\Database as DbSimpleGenericDatabase;
