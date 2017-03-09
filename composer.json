@@ -1,16 +1,29 @@
 {
     "name": "dklab/dbsimple",
     "type": "library",
-    "keywords": ["db","simple"],
+    "keywords": ["db", "simple"],
     "description": "Interface to work with various DBs.",
     "license": "LGPL",
+    "version": "1.0.5",
     "require": {
-        "php": ">=5.2.0"
+        "php": "^5.6"
     },
-    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "Dmitry Koterov",
+            "email": "dmitry.koterov@gmail.com"
+        },
+        {
+            "name": "Sergey Bondarenko",
+            "email": "s.bondarenko@ambalus.ru"
+        }
+    ],
+    "repositories": [
+
+    ],
     "autoload": {
         "psr-4": {
-            "" : "src/"
+            "": "src/"
         }
     }
 }

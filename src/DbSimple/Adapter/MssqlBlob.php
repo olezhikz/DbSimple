@@ -1,41 +1,33 @@
 <?php
 
-namespace DbSimple\Sybase;
+namespace DbSimple\Adapter;
 
-use DbSimple\Generic\Blob as DbSimpleGenericBlob;
+class MssqlBlob extends \DbSimple\BlobInterface {
 
-class Blob extends DbSimpleGenericBlob
-{
-
-    // Sybase does not support separate BLOB fetching.
+    // Mssql does not support separate BLOB fetching.
     var $blobdata = null;
-    var $curSeek  = 0;
+    var $curSeek = 0;
 
-    function __construct(&$database, $blobdata=null)
-    {
+    function __construct(&$database, $blobdata = null) {
         $this->blobdata = $blobdata;
         $this->curSeek = 0;
     }
 
-    function read($len)
-    {
+    function read($len) {
         $p = $this->curSeek;
         $this->curSeek = min($this->curSeek + $len, strlen($this->blobdata));
         return substr($this->blobdata, $this->curSeek, $len);
     }
 
-    function write($data)
-    {
+    function write($data) {
         $this->blobdata .= $data;
     }
 
-    function close()
-    {
+    function close() {
         return $this->blobdata;
     }
 
-    function length()
-    {
+    function length() {
         return strlen($this->blobdata);
     }
 

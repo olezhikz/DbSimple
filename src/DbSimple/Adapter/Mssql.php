@@ -1,4 +1,13 @@
 <?php
+
+namespace DbSimple\Adapter;
+
+use DbSimple\{
+    Adapter\MssqlBlob,
+    Database,
+    AdapterInterface
+};
+
 /**
  * DbSimple_Mssql: Mssql database.
  * (C) Dk Lab, http://en.dklab.ru
@@ -17,16 +26,10 @@
  * @version 2.x $Id: Mssql.php 163 2007-01-10 09:47:49Z dk $
  */
 
-namespace DbSimple;
-
-use DbSimple\Database as DbSimpleDatabase;
-use DbSimple\Mssql\Blob as DbSimpleMssqlBlob;
-
 /**
  * Database class for Mssql.
  */
-class Mssql extends DbSimpleDatabase
-{
+class Mssql extends Database implements AdapterInterface {
 
     var $link;
 
@@ -34,61 +37,50 @@ class Mssql extends DbSimpleDatabase
      * constructor(string $dsn)
      * Connect to Mssql.
      */
-    function __construct($dsn)
-    {
+    function __construct($dsn) {
         if (!is_callable('mssql_connect')) {
             return $this->_setLastError("-1", "Mssql extension is not loaded", "mssql_connect");
         }
-        $ok = $this->link = mssql_connect(
-            $dsn['host'] . (empty($dsn['port'])? "" : ":".$dsn['port']),
-            $dsn['user'],
-            $dsn['pass'],
-            true
-        );
+        $ok = $this->link = mssql_connect($dsn['host'] . (empty($dsn['port']) ? "" : ":" . $dsn['port']), $dsn['user'], $dsn['pass'], true);
         $this->_resetLastError();
-        if (!$ok){
+        if (!$ok) {
             return $this->_setDbError('mssql_connect()');
         }
-        $ok = mssql_select_db(preg_replace('{^/}s', '', $p['path']), $this->link);
-        if (!$ok){
+        $ok2 = mssql_select_db(preg_replace('{^/}s', '', $dsn['path']), $this->link);
+        if (!$ok2) {
             return $this->_setDbError('mssql_select_db()');
         }
     }
 
-    function _performEscape($s, $isIdent=false)
-    {
+    function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return "'" . str_replace("'", "''", $s) . "'";
         } else {
-            return str_replace(array('[',']'), '', $s);
+            return str_replace(array('[', ']'), '', $s);
         }
     }
 
-    function _performTransaction($parameters=null)
-    {
+    function _performTransaction($parameters = null) {
         return $this->query('BEGIN TRANSACTION');
     }
 
-    function _performNewBlob($blobid=null)
-    {
-        $obj = new DbSimpleMssqlBlob($this, $blobid);
+    function _performNewBlob($blobid = null) {
+        $obj = new MssqlBlob($this, $blobid);
         return $obj;
     }
 
-    function _performGetBlobFieldNames($result)
-    {
+    function _performGetBlobFieldNames($result) {
         $blobFields = array();
-        for ($i=mssql_num_fields($result)-1; $i>=0; $i--) {
+        for ($i = mssql_num_fields($result) - 1; $i >= 0; $i--) {
             $type = mssql_field_type($result, $i);
-            if (strpos($type, "BLOB") !== false){
+            if (strpos($type, "BLOB") !== false) {
                 $blobFields[] = mssql_field_name($result, $i);
             }
         }
         return $blobFields;
     }
 
-    function _performGetPlaceholderIgnoreRe()
-    {
+    function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
             \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
@@ -97,18 +89,15 @@ class Mssql extends DbSimpleDatabase
         ';
     }
 
-    function _performCommit()
-    {
+    function _performCommit() {
         return $this->query('COMMIT TRANSACTION');
     }
 
-    function _performRollback()
-    {
+    function _performRollback() {
         return $this->query('ROLLBACK TRANSACTION');
     }
 
-    function _performTransformQuery(&$queryMain, $how)
-    {
+    function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
             // Prepare total calculation (if possible)
@@ -141,7 +130,7 @@ class Mssql extends DbSimpleDatabase
                 if (preg_match($re, $queryMain[0], $m)) {
                     $query[0] = $m[1] . $this->_fieldList2Count($m[2]) . " AS C" . $m[3];
                     $skipTail = substr_count($m[4] . $m[5], '?');
-                    if ($skipTail){
+                    if ($skipTail) {
                         array_splice($query, -$skipTail);
                     }
                 }
@@ -151,8 +140,7 @@ class Mssql extends DbSimpleDatabase
         return false;
     }
 
-    function _performQuery($queryMain)
-    {
+    function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
 
@@ -163,6 +151,7 @@ class Mssql extends DbSimpleDatabase
         }
 
         if (!is_resource($result)) {
+
             if (preg_match('/^\s* INSERT \s+/six', $queryMain[0])) {
                 // INSERT queries return generated ID.
                 $result = mssql_fetch_assoc(mssql_query("SELECT SCOPE_IDENTITY() AS insert_id", $this->link));
@@ -179,18 +168,17 @@ class Mssql extends DbSimpleDatabase
         return $result;
     }
 
-    function _performFetch($result)
-    {
+    function _performFetch($result) {
         $row = mssql_fetch_assoc($result);
         //if (mssql_error()) return $this->_setDbError($this->_lastQuery);
-        if ($row === false){
+        if ($row === false) {
             return null;
         }
 
         // mssql bugfix - replase ' ' to ''
         if (is_array($row)) {
             foreach ($row as $k => $v) {
-                if ($v === ' '){
+                if ($v === ' ') {
                     $row[$k] = '';
                 }
             }
@@ -198,13 +186,11 @@ class Mssql extends DbSimpleDatabase
         return $row;
     }
 
-    function _setDbError($query, $errors = null)
-    {
+    function _setDbError($query, $errors = null) {
         return $this->_setLastError('Error! ', mssql_get_last_message() . strip_tags($errors), $query);
     }
 
-    function _calcFoundRowsAvailable()
-    {
+    function _calcFoundRowsAvailable() {
         return false;
     }
 

@@ -1,4 +1,7 @@
 <?php
+
+namespace DbSimple\Adapter;
+
 /**
  * DbSimple_Sybase: Sybase database.
  * (C) Dk Lab, http://en.dklab.ru
@@ -18,22 +21,22 @@
  * @version 2.x $Id: Sybase.php 163 2007-01-10 09:47:49Z dk $
  */
 
-namespace DbSimple;
+namespace DbSimple\Adapter;
 
-use DbSimple\Database as DbSimpleDatabase;
-use DbSimple\Sybase\Blob as DbSimpleSybaseBlob;
+use DbSimple\{
+    Adapter\SybaseBlob,
+    Database,
+    AdapterInterface
+};
 
 /**
  * Database class for Sybase.
  */
-class Sybase extends DbSimpleDatabase
-{
+class Sybase extends Database implements AdapterInterface {
 
     var $link;
-
     private $_result;
     private $_text_fields;
-
     // Allow on fly DB encodings
     protected $lcharset = NULL; // Local charset
     protected $rcharset = NULL; // Remote charset
@@ -42,65 +45,58 @@ class Sybase extends DbSimpleDatabase
      * constructor(string $dsn)
      * Connect to Sybase.
      */
-    function __construct($dsn)
-    {
-        if (!is_callable('sybase_connect')){
+    function __construct($dsn) {
+        if (!is_callable('sybase_connect')) {
             return $this->_setLastError("-1", "Sybase extension is not loaded", "sybase_connect");
         }
 
-        if(isset($dsn['lcharset'])){
+        if (isset($dsn['lcharset'])) {
             $this->lcharset = $dsn['lcharset'];
         }
-        if(isset($dsn['rcharset'])){
+        if (isset($dsn['rcharset'])) {
             $this->rcharset = $dsn['rcharset'];
         }
 
         // May be use sybase_connect or sybase_pconnect
         $ok = $this->link = sybase_pconnect(
-            $dsn['host'] . (empty($dsn['port'])? "" : ":".$dsn['port']),
-            $dsn['user'],
-            $dsn['pass']
+            $dsn['host'] . (empty($dsn['port']) ? "" : ":" . $dsn['port']), $dsn['user'], $dsn['pass']
         );
         $this->_resetLastError();
-        if (!$ok){
+        if (!$ok) {
             return $this->_setDbError('sybase_connect()');
         }
         $ok = sybase_select_db(preg_replace('{^/}s', '', $dsn['path']), $this->link);
-        if (!$ok){
+        if (!$ok) {
             return $this->_setDbError('sybase_select_db()');
         }
     }
 
-    function _performEscape($s, $isIdent=false)
-    {
-        if (!$isIdent){
-            if(is_int($s)){
+    function _performEscape($s, $isIdent = false) {
+        if (!$isIdent) {
+            if (is_int($s)) {
                 return $s;
-            }else{
+            } else {
                 return "'" . str_replace("'", "''", $s) . "'";
             }
-        }else{
-            return str_replace(array('[',']'), '', $s);
+        } else {
+            return str_replace(array('[', ']'), '', $s);
         }
     }
 
-    function _performTransaction($parameters=null)
-    {
+    function _performTransaction($parameters = null) {
         return $this->query('BEGIN TRANSACTION');
     }
 
-    function _performNewBlob($blobid=null)
-    {
-        $obj = new DbSimpleSybaseBlob($this, $blobid);
+    function _performNewBlob($blobid = null) {
+        $obj = new SybaseBlob($this, $blobid);
         return $obj;
     }
 
-    function _performGetBlobFieldNames($result)
-    {
+    function _performGetBlobFieldNames($result) {
         $blobFields = array();
-        for($i=sybase_num_fields($result)-1; $i>=0; $i--){
+        for ($i = sybase_num_fields($result) - 1; $i >= 0; $i--) {
             $type = sybase_fetch_field($result, $i);
-            if (strpos($type->type, "BINARY") !== false){
+            if (strpos($type->type, "BINARY") !== false) {
                 $blobFields[] = $type->name;
             }
             unset($type);
@@ -108,8 +104,7 @@ class Sybase extends DbSimpleDatabase
         return $blobFields;
     }
 
-    function _performGetPlaceholderIgnoreRe()
-    {
+    function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
             \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
@@ -118,25 +113,22 @@ class Sybase extends DbSimpleDatabase
         ';
     }
 
-    function _performCommit()
-    {
+    function _performCommit() {
         return $this->query('COMMIT TRANSACTION');
     }
 
-    function _performRollback()
-    {
+    function _performRollback() {
         return $this->query('ROLLBACK TRANSACTION');
     }
 
-    function _performTransformQuery(&$queryMain, $how)
-    {
+    function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
-        switch ($how){
+        switch ($how) {
             // Prepare total calculation (if possible)
             case 'CALC_TOTAL':
                 $m = null;
-                if (preg_match('/^(\s* SELECT)(.*)/six', $queryMain[0], $m)){
-                    if ($this->_calcFoundRowsAvailable()){
+                if (preg_match('/^(\s* SELECT)(.*)/six', $queryMain[0], $m)) {
+                    if ($this->_calcFoundRowsAvailable()) {
                         $queryMain[0] = $m[1] . ' SQL_CALC_FOUND_ROWS' . $m[2];
                     }
                 }
@@ -145,7 +137,7 @@ class Sybase extends DbSimpleDatabase
             // Perform total calculation.
             case 'GET_TOTAL':
                 // Built-in calculation available?
-                if ($this->_calcFoundRowsAvailable()){
+                if ($this->_calcFoundRowsAvailable()) {
                     $queryMain = array('SELECT FOUND_ROWS()');
                 }
                 // Else use manual calculation.
@@ -159,10 +151,10 @@ class Sybase extends DbSimpleDatabase
                         ((?:\s+ LIMIT \s+ \S+ \s* (?:, \s* \S+ \s*)? )?)  #5
                 $/six';
                 $m = null;
-                if (preg_match($re, $queryMain[0], $m)){
+                if (preg_match($re, $queryMain[0], $m)) {
                     $query[0] = $m[1] . $this->_fieldList2Count($m[2]) . " AS C" . $m[3];
                     $skipTail = substr_count($m[4] . $m[5], '?');
-                    if ($skipTail){
+                    if ($skipTail) {
                         array_splice($query, -$skipTail);
                     }
                 }
@@ -172,26 +164,25 @@ class Sybase extends DbSimpleDatabase
         return false;
     }
 
-    function _performQuery($queryMain)
-    {
+    function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
 
         // Convert query if allow on fly encodings
-        if($this->lcharset && $this->rcharset){
-            $sql_query = mb_convert_encoding($queryMain[0],$this->rcharset, $this->lcharset);
-        }else{
+        if ($this->lcharset && $this->rcharset) {
+            $sql_query = mb_convert_encoding($queryMain[0], $this->rcharset, $this->lcharset);
+        } else {
             $sql_query = $queryMain[0];
         }
 
         $result = sybase_query($sql_query, $this->link);
 
-        if ($result === false){
+        if ($result === false) {
             return $this->_setDbError($queryMain[0]);
         }
 
-        if (!is_resource($result)){
-            if (preg_match('/^\s* INSERT \s+/six', $queryMain[0])){
+        if (!is_resource($result)) {
+            if (preg_match('/^\s* INSERT \s+/six', $queryMain[0])) {
                 // INSERT queries return generated ID.
                 $result = sybase_fetch_assoc(sybase_query("SELECT @@identity insert_id", $this->link));
                 return isset($result['insert_id']) ? $result['insert_id'] : true;
@@ -203,41 +194,40 @@ class Sybase extends DbSimpleDatabase
         }
         return $result;
     }
-    
-    private function _getTextFields($result){
-        if($this->_result == $result){
+
+    private function _getTextFields($result) {
+        if ($this->_result == $result) {
             return $this->_text_fields;
         }
         $this->_result = $result;
         $this->_text_fields = array();
-        for($i=sybase_num_fields($result)-1; $i>=0; $i--){
+        for ($i = sybase_num_fields($result) - 1; $i >= 0; $i--) {
             $type = sybase_fetch_field($result, $i);
-            if(!$type->numeric){
+            if (!$type->numeric) {
                 $this->_text_fields[$type->name] = $type->type;
             }
         }
         return $this->_text_fields;
     }
 
-    function _performFetch($result)
-    {
+    function _performFetch($result) {
         $row = sybase_fetch_assoc($result);
         //if (sybase_error()(!!!)) return $this->_setDbError($this->_lastQuery);
-        if ($row === false){
+        if ($row === false) {
             return null;
         }
 
         // sybase bugfix - replase ' ' to ''
         // Encoding string fields on fly
-        if (is_array($row)){
+        if (is_array($row)) {
             $tf = $this->_getTextFields($result);
-            foreach($tf as $k => $t){
+            foreach ($tf as $k => $t) {
                 $v = $row[$k];
-                if(!is_null($v)){
-                    if ($v === ' '){ // Sybase bugfix
+                if (!is_null($v)) {
+                    if ($v === ' ') { // Sybase bugfix
                         $v = '';
-                    }else{
-                        if ($this->lcharset && $this->rcharset){
+                    } else {
+                        if ($this->lcharset && $this->rcharset) {
                             $v = mb_convert_encoding($v, $this->lcharset, $this->rcharset);
                         }
                     }
@@ -248,13 +238,11 @@ class Sybase extends DbSimpleDatabase
         return $row;
     }
 
-    function _setDbError($query, $errors = null)
-    {
+    function _setDbError($query, $errors = null) {
         return $this->_setLastError('Error! ', sybase_get_last_message() . strip_tags($errors), $query);
     }
 
-    function _calcFoundRowsAvailable()
-    {
+    function _calcFoundRowsAvailable() {
         return false;
     }
 

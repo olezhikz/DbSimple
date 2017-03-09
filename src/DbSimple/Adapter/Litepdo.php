@@ -1,4 +1,13 @@
+
 <?php
+
+namespace DbSimple\Adapter;
+
+use DbSimple\{
+    Database,
+    AdapterInterface
+};
+
 /**
  * DbSimple_Litepdo: PDO SQLite database.
  * (C) Dk Lab, http://en.dklab.ru
@@ -16,53 +25,44 @@
  * @version 2.x $Id$
  */
 
-namespace DbSimple;
-
-use DbSimple\Database as DbSimpleDatabase;
-
 /**
  * Database class for SQLite.
  */
-class Litepdo extends DbSimpleDatabase
-{
+class Litepdo extends Database implements AdapterInterface {
+
     private $link;
 
-    public function __construct($dsn)
-    {
-        if (!class_exists('PDO')){
+    public function __construct($dsn) {
+        if (!class_exists('PDO')) {
             return $this->_setLastError("-1", "PDO extension is not loaded", "PDO");
         }
 
         try {
-            $this->link = new PDO('sqlite:'.$dsn['path']);
+            $this->link = new PDO('sqlite:' . $dsn['path']);
         } catch (PDOException $e) {
-            $this->_setLastError($e->getCode() , $e->getMessage(), 'new PDO');
+            $this->_setLastError($e->getCode(), $e->getMessage(), 'new PDO');
         }
-        $this->link->exec('SET NAMES '.(isset($dsn['enc'])?$dsn['enc']:'UTF8'));
+        $this->link->exec('SET NAMES ' . (isset($dsn['enc']) ? $dsn['enc'] : 'UTF8'));
     }
 
-    public function CreateFunction($function_name, $callback, $num_args)
-    {
+    public function createFunction($function_name, $callback, $num_args) {
         return $this->link->sqliteCreateFunction($function_name, $callback, $num_args);
     }
 
-    public function CreateAggregate($function_name, $step_func, $finalize_func, $num_args)
-    {
+    public function createAggregate($function_name, $step_func, $finalize_func, $num_args) {
         return $this->link->CreateAggregate($function_name, $step_func, $finalize_func, $num_args);
     }
 
-    protected function _performGetPlaceholderIgnoreRe()
-    {
+    protected function _performGetPlaceholderIgnoreRe() {
         return '
-            "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
-            \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
-            `   (?> [^`]+ | ``)*              `   |   # backticks
-            /\* .*?                          \*/      # comments
-        ';
+			"   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
+			\'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
+			`   (?> [^`]+ | ``)*              `   |   # backticks
+			/\* .*?                          \*/      # comments
+		';
     }
 
-    protected function _performEscape($s, $isIdent=false)
-    {
+    protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return $this->link->quote($s);
         } else {
@@ -70,36 +70,32 @@ class Litepdo extends DbSimpleDatabase
         }
     }
 
-    protected function _performTransaction($parameters=null)
-    {
+    protected function _performTransaction($parameters = null) {
         return $this->link->beginTransaction();
     }
 
-    protected function _performCommit()
-    {
+    protected function _performCommit() {
         return $this->link->commit();
     }
 
-    protected function _performRollback()
-    {
+    protected function _performRollback() {
         return $this->link->rollBack();
     }
 
-    protected function _performQuery($queryMain)
-    {
+    protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
         $p = $this->link->query($queryMain[0]);
-        if (!$p){
-            return $this->_setDbError($p,$queryMain[0]);
+        if (!$p) {
+            return $this->_setDbError($p, $queryMain[0]);
         }
-        if ($p->errorCode()!=0){
-            return $this->_setDbError($p,$queryMain[0]);
+        if ($p->errorCode() != 0) {
+            return $this->_setDbError($p, $queryMain[0]);
         }
-        if (preg_match('/^\s* INSERT \s+/six', $queryMain[0])){
+        if (preg_match('/^\s* INSERT \s+/six', $queryMain[0])) {
             return $this->link->lastInsertId();
         }
-        if ($p->columnCount()==0){
+        if ($p->columnCount() == 0) {
             return $p->rowCount();
         }
         //Если у нас в запросе есть хотя-бы одна колонка - это по любому будет select
@@ -109,11 +105,9 @@ class Litepdo extends DbSimpleDatabase
         return $res;
     }
 
-    protected function _performTransformQuery(&$queryMain, $how)
-    {
+    protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
-        switch ($how)
-        {
+        switch ($how) {
             // Prepare total calculation (if possible)
             case 'CALC_TOTAL':
                 // Not possible
@@ -123,18 +117,18 @@ class Litepdo extends DbSimpleDatabase
             case 'GET_TOTAL':
                 // TODO: GROUP BY ... -> COUNT(DISTINCT ...)
                 $re = '/^
-                    (?> -- [^\r\n]* | \s+)*
-                    (\s* SELECT \s+)                                             #1
-                    (.*?)                                                        #2
-                    (\s+ FROM \s+ .*?)                                           #3
-                        ((?:\s+ ORDER \s+ BY \s+ .*?)?)                          #4
-                        ((?:\s+ LIMIT \s+ \S+ \s* (?: , \s* \S+ \s*)? )?)  #5
-                $/six';
+					(?> -- [^\r\n]* | \s+)*
+					(\s* SELECT \s+)                                             #1
+					(.*?)                                                        #2
+					(\s+ FROM \s+ .*?)                                           #3
+						((?:\s+ ORDER \s+ BY \s+ .*?)?)                          #4
+						((?:\s+ LIMIT \s+ \S+ \s* (?: , \s* \S+ \s*)? )?)  #5
+				$/six';
                 $m = null;
                 if (preg_match($re, $queryMain[0], $m)) {
                     $queryMain[0] = $m[1] . $this->_fieldList2Count($m[2]) . " AS C" . $m[3];
                     $skipTail = substr_count($m[4] . $m[5], '?');
-                    if ($skipTail){
+                    if ($skipTail) {
                         array_splice($queryMain, -$skipTail);
                     }
                 }
@@ -144,24 +138,20 @@ class Litepdo extends DbSimpleDatabase
         return false;
     }
 
-    protected function _setDbError($obj,$q)
-    {
-        $info=$obj?$obj->errorInfo():$this->link->errorInfo();
+    protected function _setDbError($obj, $q) {
+        $info = $obj ? $obj->errorInfo() : $this->link->errorInfo();
         return $this->_setLastError($info[1], $info[2], $q);
     }
 
-    protected function _performNewBlob($id=null)
-    {
+    protected function _performNewBlob($id = null) {
 
     }
 
-    protected function _performGetBlobFieldNames($result)
-    {
+    protected function _performGetBlobFieldNames($result) {
         return array();
     }
 
-    protected function _performFetch($result)
-    {
+    protected function _performFetch($result) {
         return $result;
     }
 

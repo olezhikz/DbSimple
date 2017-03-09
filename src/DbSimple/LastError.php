@@ -1,33 +1,29 @@
 <?php
 
-namespace DbSimple\Generic;
+namespace DbSimple;
 
 /**
  * Support for error tracking.
  * Can hold error messages, error queries and build proper stacktraces.
  */
-class LastError
-{
-    var $error = null;
-    var $errmsg = null;
-    var $errorHandler = null;
-    var $ignoresInTraceRe = 'DbSimple_.*::.* | call_user_func.*';
+abstract class LastError {
+
+    public $error = null;
+    public $errmsg = null;
+    private $errorHandler = null;
+    private $ignoresInTraceRe = 'DbSimple\\.*::.* | call_user_func.*';
 
     /**
      * abstract void _logQuery($query)
      * Must be overriden in derived class.
      */
-    function _logQuery($query)
-    {
-        die("Method must be defined in derived class. Abstract function called at ".__FILE__." line ".__LINE__);
-    }
+    abstract protected function _logQuery($query);
 
     /**
      * void _resetLastError()
      * Reset the last error. Must be called on correct queries.
      */
-    function _resetLastError()
-    {
+    protected function _resetLastError() {
         $this->error = $this->errmsg = null;
     }
 
@@ -36,30 +32,27 @@ class LastError
      * Fill $this->error property with error information. Error context
      * (code initiated the query outside DbSimple) is assigned automatically.
      */
-    function _setLastError($code, $msg, $query)
-    {
+    protected function _setLastError($code, $msg, $query) {
         $context = "unknown";
-        $t = $this->findLibraryCaller();
-        if($t) {
-            $context = (isset($t['file'])? $t['file'] : '?') . ' line ' . (isset($t['line'])? $t['line'] : '?');
+        if (($t = $this->findLibraryCaller())) {
+            $context = (isset($t['file']) ? $t['file'] : '?') . ' line ' . (isset($t['line']) ? $t['line'] : '?');
         }
         $this->error = array(
-            'code'    => $code,
+            'code' => $code,
             'message' => rtrim($msg),
-            'query'   => $query,
+            'query' => $query,
             'context' => $context,
         );
-        $this->errmsg = rtrim($msg) . ($context? " at $context" : "");
+        $this->errmsg = rtrim($msg) . ($context ? " at $context" : "");
 
-        $this->_logQuery("  -- error #".$code.": ".preg_replace('/(\r?\n)+/s', ' ', $this->errmsg));
+        $this->_logQuery("  -- error #" . $code . ": " . preg_replace('/(\r?\n)+/s', ' ', $this->errmsg));
 
         if (is_callable($this->errorHandler)) {
             call_user_func($this->errorHandler, $this->errmsg, $this->error);
         }
 
-        return null;
+        return false;
     }
-
 
     /**
      * callback setErrorHandler(callback $handler)
@@ -68,17 +61,12 @@ class LastError
      * - error message
      * - full error context information (last query etc.)
      */
-    /**
-     * @author Levcehnko Ivan
-     * @comment Added var $obj to gat errorHandler from Object;
-     */
-    function setErrorHandler($handler)
-    {
+    public function setErrorHandler($handler) {
         $prev = $this->errorHandler;
         $this->errorHandler = $handler;
         // In case of setting first error handler for already existed
         // error - call the handler now (usual after connect()).
-        if (!$prev && $this->error) {
+        if (!$prev && $this->error && $this->errorHandler) {
             call_user_func($this->errorHandler, $this->errmsg, $this->error);
         }
         return $prev;
@@ -89,8 +77,7 @@ class LastError
      * Add regular expression matching ClassName::functionName or functionName.
      * Matched stack frames will be ignored in stack traces passed to query logger.
      */
-    function addIgnoreInTrace($name)
-    {
+    public function addIgnoreInTrace($name) {
         $this->ignoresInTraceRe .= "|" . $name;
     }
 
@@ -99,12 +86,9 @@ class LastError
      * Return part of stacktrace before calling first library method.
      * Used in debug purposes (query logging etc.).
      */
-    function findLibraryCaller()
-    {
+    public function findLibraryCaller() {
         $caller = call_user_func(
-            array(&$this, 'debug_backtrace_smart'),
-            $this->ignoresInTraceRe,
-            true
+            array(&$this, 'debug_backtrace_smart'), $this->ignoresInTraceRe, true
         );
         return $caller;
     }
@@ -119,36 +103,33 @@ class LastError
      *
      * @version 2.03
      */
-    function debug_backtrace_smart($ignoresRe=null, $returnCaller=false)
-    {
-        if (!is_callable($tracer='debug_backtrace')){
-            return array();
-        }
-        $trace = $tracer();
+    private function debug_backtrace_smart($ignoresRe = null, $returnCaller = false) {
+        $trace = debug_backtrace();
 
-        if ($ignoresRe !== null){
+        if ($ignoresRe !== null) {
             $ignoresRe = "/^(?>{$ignoresRe})$/six";
         }
         $smart = array();
         $framesSeen = 0;
-        for ($i=0, $n=count($trace); $i<$n; $i++) {
+        for ($i = 0, $n = count($trace); $i < $n; $i++) {
             $t = $trace[$i];
-            if (!$t){
+            if (!$t) {
                 continue;
             }
 
             // Next frame.
-            $next = isset($trace[$i+1])? $trace[$i+1] : null;
+            $next = isset($trace[$i + 1]) ? $trace[$i + 1] : null;
 
             // Dummy frame before call_user_func* frames.
             if (!isset($t['file'])) {
-                $t['over_function'] = $trace[$i+1]['function'];
-                $t = $t + $trace[$i+1];
-                $trace[$i+1] = null; // skip call_user_func on next iteration
+                $t['over_function'] = $trace[$i + 1]['function'];
+                $t = $t + $trace[$i + 1];
+                $trace[$i + 1] = null; // skip call_user_func on next iteration
+                $next = isset($trace[$i + 2]) ? $trace[$i + 2] : null; // Correct Next frame.
             }
 
             // Skip myself frame.
-            if (++$framesSeen < 2){
+            if (++$framesSeen < 2) {
                 continue;
             }
 
@@ -157,19 +138,20 @@ class LastError
             // situated in ignored places.
             if ($ignoresRe && $next) {
                 // Name of function "inside which" frame was generated.
-                $frameCaller = (isset($next['class'])? $next['class'].'::' : '') . (isset($next['function'])? $next['function'] : '');
-                if (preg_match($ignoresRe, $frameCaller)){
+                $frameCaller = (isset($next['class']) ? $next['class'] . '::' : '') . (isset($next['function']) ? $next['function'] : '');
+                if (preg_match($ignoresRe, $frameCaller)) {
                     continue;
                 }
             }
 
             // On each iteration we consider ability to add PREVIOUS frame
             // to $smart stack.
-            if ($returnCaller){
+            if ($returnCaller) {
                 return $t;
             }
             $smart[] = $t;
         }
+
         return $smart;
     }
 

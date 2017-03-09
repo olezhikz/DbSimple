@@ -1,4 +1,13 @@
 <?php
+
+namespace DbSimple\Adapter;
+
+use DbSimple\{
+    Adapter\PostgresqlBlob,
+    Database,
+    AdapterInterface
+};
+
 /**
  * DbSimple_Postgreql: PostgreSQL database.
  * (C) Dk Lab, http://en.dklab.ru
@@ -13,89 +22,72 @@
  *
  * @author Dmitry Koterov, http://forum.dklab.ru/users/DmitryKoterov/
  * @author Konstantin Zhinko, http://forum.dklab.ru/users/KonstantinGinkoTit/
- * 
+ *
  * @version 2.x $Id$
  */
-
-namespace DbSimple;
-
-use DbSimple\Generic as DbSimpleGeneric;
-use DbSimple\Generic\Database as DbSimpleGenericDatabase;
-use DbSimple\Postgres\Blob as DbSimplePostgresBlob;
 
 /**
  * Database class for PostgreSQL.
  */
-class Postgres extends DbSimpleGenericDatabase
-{
+class Postgresql extends Database implements AdapterInterface {
 
     var $DbSimple_Postgresql_USE_NATIVE_PHOLDERS = null;
     var $prepareCache = array();
     var $link;
-    public $current_shard = 0;
-    
+
     /**
      * constructor(string $dsn)
      * Connect to PostgresSQL.
      */
-    function __construct($dsn)
-    {
-        $p = DbSimpleGeneric::parseDSN($dsn);
-        if(!is_callable('pg_connect')){
+    function __construct($dsn) {
+        $p = \DbSimple\Database::parseDSN($dsn);
+        if (!is_callable('pg_connect')) {
             return $this->_setLastError("-1", "PostgreSQL extension is not loaded", "pg_connect");
         }
-        
+
         // Prepare+execute works only in PHP 5.1+.
         $this->DbSimple_Postgresql_USE_NATIVE_PHOLDERS = function_exists('pg_prepare');
-        
-        $dsnWithoutPass = 
-        	(!empty($p['host']) ? 'host='.$p['host'].' ' : '') .
+
+        $dsnWithoutPass = (!empty($p['host']) ? 'host=' . $p['host'] . ' ' : '') .
             (!empty($p['port']) ? 'port=' . $p['port'] . ' ' : '') .
-            'dbname=' . preg_replace('{^/}s', '', $p['path']) .' '.
-            (!empty($p['user']) ? 'user='. $p['user'] : '');
-        $ok = $this->link = pg_pconnect(
-            $dsnWithoutPass ." ".(!empty($p['pass']) ? 'password=' . $p['pass'] . ' ' : '')/*,
-			PGSQL_CONNECT_FORCE_NEW*/
-        );
+            'dbname=' . preg_replace('{^/}s', '', $p['path']) . ' ' .
+            (!empty($p['user']) ? 'user=' . $p['user'] : '');
+
+        $ok = $this->link = pg_connect($dsnWithoutPass . " " . (!empty($p['pass']) ? 'password=' . $p['pass'] . ' ' : ''), PGSQL_CONNECT_FORCE_NEW);
         // We use PGSQL_CONNECT_FORCE_NEW, because in PHP 5.3 & PHPUnit
         // $this->prepareCache may be cleaned, but $this->link is still
         // not closed. So the next creation of DbSimple_Postgresql()
         // would use exactly the same connection as the previous, but with
-        // empty $this->prepareCache, and it will generate "prepared statement 
+        // empty $this->prepareCache, and it will generate "prepared statement
         // xxx already exists" error each time we execute the same statement
         // as in the previous calls.
         $this->_resetLastError();
-        if(!$ok){
+        if (!$ok) {
             return $this->_setDbError('pg_connect("' . $dsnWithoutPass . '") error');
         }
     }
 
-    function _performEscape($s, $isIdent=false)
-    {
-        if(!$isIdent){
+    function _performEscape($s, $isIdent = false) {
+        if (!$isIdent) {
             return "E'" . pg_escape_string($this->link, $s) . "'";
-        }else{
+        } else {
             return '"' . str_replace('"', '_', $s) . '"';
         }
     }
 
-    function _performTransaction($parameters=null)
-    {
+    function _performTransaction($parameters = null) {
         return $this->query('BEGIN');
     }
 
-    function& _performNewBlob($blobid=null)
-    {
-        $obj = new DbSimplePostgresBlob($this, $blobid);
-        return $obj;
+    function& _performNewBlob($blobid = null) {
+        return new PostgresqlBlob($this, $blobid);
     }
 
-    function _performGetBlobFieldNames($result)
-    {
+    function _performGetBlobFieldNames($result) {
         $blobFields = array();
-        for($i=pg_num_fields($result)-1; $i>=0; $i--){
-            $type = pg_field_type($result, $i); 
-            if(strpos($type, "BLOB") !== false){
+        for ($i = pg_num_fields($result) - 1; $i >= 0; $i--) {
+            $type = pg_field_type($result, $i);
+            if (strpos($type, "BLOB") !== false) {
                 $blobFields[] = pg_field_name($result, $i);
             }
         }
@@ -103,8 +95,7 @@ class Postgres extends DbSimpleGenericDatabase
     }
 
     // TODO: Real PostgreSQL escape
-    function _performGetPlaceholderIgnoreRe()
-    {
+    function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
             \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
@@ -112,26 +103,23 @@ class Postgres extends DbSimpleGenericDatabase
         ';
     }
 
-    function _performGetNativePlaceholderMarker($n)
-    {
+    function _performGetNativePlaceholderMarker($n) {
         // PostgreSQL uses specific placeholders such as $1, $2, etc.
         return '$' . ($n + 1);
-    }  
+    }
 
-    function _performCommit()
-    {
+    function _performCommit() {
         return $this->query('COMMIT');
     }
 
-    function _performRollback()
-    {
+    function _performRollback() {
         return $this->query('ROLLBACK');
     }
 
-    function _performTransformQuery(&$queryMain, $how)
-    {
+    function _performTransformQuery(&$queryMain, $how) {
+
         // If we also need to calculate total number of found rows...
-        switch ($how){
+        switch ($how) {
             // Prepare total calculation (if possible)
             case 'CALC_TOTAL':
                 // Not possible
@@ -142,65 +130,67 @@ class Postgres extends DbSimpleGenericDatabase
                 // TODO: GROUP BY ... -> COUNT(DISTINCT ...)
                 $re = '/^
                     (?> -- [^\r\n]* | \s+)*
-                    (\s* SELECT \s+)                                             #1     
+                    (\s* SELECT \s+)                                             #1
                     (.*?)                                                        #2
                     (\s+ FROM \s+ .*?)                                           #3
                         ((?:\s+ ORDER \s+ BY \s+ .*?)?)                          #4
                         ((?:\s+ LIMIT \s+ \S+ \s* (?: OFFSET \s* \S+ \s*)? )?)  #5
                 $/six';
                 $m = null;
-                if(preg_match($re, $queryMain[0], $m)){
+                if (preg_match($re, $queryMain[0], $m)) {
                     $queryMain[0] = $m[1] . $this->_fieldList2Count($m[2]) . " AS C" . $m[3];
-                    $skipTail = substr_count($m[4] . $m[5], '?'); 
-                    if($skipTail){
+                    $skipTail = substr_count($m[4] . $m[5], '?');
+                    if ($skipTail) {
                         array_splice($queryMain, -$skipTail);
                     }
                 }
                 return true;
         }
-        
+
         return false;
     }
 
-    function _performQuery($queryMain)
-    {
+    function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $isInsert = preg_match('/^\s* INSERT \s+/six', $queryMain[0]);
-    
-        //        
+
+        //
         // Note that in case of INSERT query we CANNOT work with prepare...execute
-        // cache, because RULEs do not work after pg_execute(). This is a very strange 
+        // cache, because RULEs do not work after pg_execute(). This is a very strange
         // bug... To reproduce:
         //   $DB->query("CREATE TABLE test(id SERIAL, str VARCHAR(10)) WITH OIDS");
         //   $DB->query("CREATE RULE test_r AS ON INSERT TO test DO (SELECT 111 AS id)");
         //   print_r($DB->query("INSERT INTO test(str) VALUES ('test')"));
-        // In case INSERT + pg_execute() it returns new row OID (numeric) instead 
+        // In case INSERT + pg_execute() it returns new row OID (numeric) instead
         // of result of RULE query. Strange, very strange...
         //
-        
-        if($this->DbSimple_Postgresql_USE_NATIVE_PHOLDERS && !$isInsert){
+
+        if ($this->DbSimple_Postgresql_USE_NATIVE_PHOLDERS && !$isInsert) {
             // Use native placeholders only if PG supports them.
-            $this->_expandPlaceholders($queryMain, false);
-            $hash = md5($queryMain[0].$this->current_shard);
-//            if(!isset($this->prepareCache[$hash]) || TRUE){
-//                $prepared = @pg_prepare($this->link, '', $queryMain[0]);
-////                if($prepared === false || FALSE){return $this->_setDbError($queryMain[0]);
-////								} else $this->prepareCache[$hash] = true;
-//            }else{
-//                // Prepare cache hit!
-//            }
-            $result = @pg_query_params($this->link, $queryMain[0], array_slice($queryMain, 1));
-        }else{
+            $this->_expandPlaceholders($queryMain, true);
+            $hash = md5($queryMain[0]);
+            if (!isset($this->prepareCache[$hash])) {
+                $prepared = pg_prepare($this->link, $hash, $queryMain[0]);
+                if ($prepared === false) {
+                    return $this->_setDbError($queryMain[0]);
+                } else {
+                    $this->prepareCache[$hash] = true;
+                }
+            } else {
+                // Prepare cache hit!
+            }
+            $result = pg_execute($this->link, $hash, array_slice($queryMain, 1));
+        } else {
             // No support for native placeholders on INSERT query.
             $this->_expandPlaceholders($queryMain, false);
             $result = pg_query($this->link, $queryMain[0]);
         }
 
-        if($result === false){
+        if ($result === false) {
             return $this->_setDbError($queryMain);
         }
-        if(!pg_num_fields($result)){
-            if($isInsert){
+        if (!pg_num_fields($result)) {
+            if ($isInsert) {
                 // INSERT queries return generated OID (if table is WITH OIDs).
                 //
                 // Please note that unfortunately we cannot use lastval() PostgreSQL
@@ -221,25 +211,19 @@ class Postgres extends DbSimpleGenericDatabase
         return $result;
     }
 
-    function _performFetch($result)
-    {
+    function _performFetch($result) {
         $row = pg_fetch_assoc($result);
-        if(pg_last_error($this->link)){
+        if (pg_last_error($this->link)) {
             return $this->_setDbError($this->_lastQuery);
-        }
-        if($row === false){
-            return null;        
         }
         return $row;
     }
 
-    function _setDbError($query)
-    {
-        return $this->_setLastError(null, $this->link? pg_last_error($this->link) : (is_array($query)? "Connection is not established" : $query), $query);
+    function _setDbError($query) {
+        return $this->_setLastError(null, $this->link ? pg_last_error($this->link) : (is_array($query) ? "Connection is not established" : $query), $query);
     }
 
-    function _getVersion()
-    {
+    function _getVersion() {
 
     }
 
