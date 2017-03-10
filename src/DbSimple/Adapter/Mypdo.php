@@ -2,10 +2,8 @@
 
 namespace DbSimple\Adapter;
 
-use DbSimple\{
-    Database,
-    AdapterInterface
-};
+use DbSimple\Database;
+use DbSimple\AdapterInterface;
 
 /**
  * DbSimple_Mypdo: PDO MySQL database.

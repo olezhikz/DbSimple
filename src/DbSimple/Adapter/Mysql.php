@@ -2,11 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-use DbSimple\{
-    Adapter\MysqlBlob,
-    Database,
-    AdapterInterface
-};
+use DbSimple\Adapter\MysqlBlob;
+use DbSimple\Database;
+use DbSimple\AdapterInterface;
 
 /**
  * DbSimple_Mysql: MySQL database.

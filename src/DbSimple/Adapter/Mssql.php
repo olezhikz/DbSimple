@@ -2,11 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-use DbSimple\{
-    Adapter\MssqlBlob,
-    Database,
-    AdapterInterface
-};
+use DbSimple\Adapter\MssqlBlob;
+use DbSimple\Database;
+use DbSimple\AdapterInterface;
 
 /**
  * DbSimple_Mssql: Mssql database.

@@ -2,11 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-use DbSimple\{
-    Adapter\IbaseBlob,
-    Database,
-    AdapterInterface
-};
+use DbSimple\Adapter\IbaseBlob;
+use DbSimple\Database;
+use DbSimple\AdapterInterface;
 
 /**
  * DbSimple_Ibase: Interbase/Firebird database.
@@ -55,7 +53,7 @@ class Ibase extends Database implements AdapterInterface {
             return $this->_setLastError("-1", "Interbase/Firebird extension is not loaded", "ibase_connect");
         }
         $ok = $this->link = ibase_connect(
-            $p['host'] . (empty($p['port']) ? "" : ":" . $p['port']) . ':' . preg_replace('{^/}s', '', $p['path']), $p['user'], $p['pass'], isset($p['CHARSET']) ? $p['CHARSET'] : 'win1251', isset($p['BUFFERS']) ? $p['BUFFERS'] : 0, isset($p['DIALECT']) ? $p['DIALECT'] : 3, isset($p['ROLE']) ? $p['ROLE'] : ''
+                $p['host'] . (empty($p['port']) ? "" : ":" . $p['port']) . ':' . preg_replace('{^/}s', '', $p['path']), $p['user'], $p['pass'], isset($p['CHARSET']) ? $p['CHARSET'] : 'win1251', isset($p['BUFFERS']) ? $p['BUFFERS'] : 0, isset($p['DIALECT']) ? $p['DIALECT'] : 3, isset($p['ROLE']) ? $p['ROLE'] : ''
         );
         if (isset($p['TRANSACTION'])) {
             $this->DbSimple_Ibase_BEST_TRANSACTION = eval($p['TRANSACTION'] . ";");

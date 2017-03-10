@@ -2,11 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-use DbSimple\{
-    Adapter\MysqliBlob,
-    Database,
-    AdapterInterface
-};
+use DbSimple\Adapter\MysqliBlob;
+use DbSimple\Database;
+use DbSimple\AdapterInterface;
 
 /**
  * DbSimple_Mysql: MySQL database.
@@ -54,12 +52,12 @@ class Mysqli extends Database implements AdapterInterface {
         if (isset($dsn['socket'])) {
             // Socket connection
             $this->link = mysqli_connect(
-                null, empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), null, $dsn['socket']
+                    null, empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), null, $dsn['socket']
             );
         } else if (isset($dsn['host'])) {
             // Host connection
             $this->link = mysqli_connect(
-                $dsn['host'], empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), empty($dsn['port']) ? null : $dsn['port']
+                    $dsn['host'], empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), empty($dsn['port']) ? null : $dsn['port']
             );
         } else {
             return $this->_setDbError('mysqli_connect()');

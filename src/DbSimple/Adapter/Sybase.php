@@ -2,6 +2,10 @@
 
 namespace DbSimple\Adapter;
 
+use DbSimple\Adapter\SybaseBlob;
+use DbSimple\Database;
+use DbSimple\AdapterInterface;
+
 /**
  * DbSimple_Sybase: Sybase database.
  * (C) Dk Lab, http://en.dklab.ru
@@ -20,14 +24,6 @@ namespace DbSimple\Adapter;
  *
  * @version 2.x $Id: Sybase.php 163 2007-01-10 09:47:49Z dk $
  */
-
-namespace DbSimple\Adapter;
-
-use DbSimple\{
-    Adapter\SybaseBlob,
-    Database,
-    AdapterInterface
-};
 
 /**
  * Database class for Sybase.
@@ -58,15 +54,13 @@ class Sybase extends Database implements AdapterInterface {
         }
 
         // May be use sybase_connect or sybase_pconnect
-        $ok = $this->link = sybase_pconnect(
-            $dsn['host'] . (empty($dsn['port']) ? "" : ":" . $dsn['port']), $dsn['user'], $dsn['pass']
-        );
+        $ok = $this->link = sybase_pconnect($dsn['host'] . (empty($dsn['port']) ? "" : ":" . $dsn['port']), $dsn['user'], $dsn['pass']);
         $this->_resetLastError();
         if (!$ok) {
             return $this->_setDbError('sybase_connect()');
         }
-        $ok = sybase_select_db(preg_replace('{^/}s', '', $dsn['path']), $this->link);
-        if (!$ok) {
+        $ok2 = sybase_select_db(preg_replace('{^/}s', '', $dsn['path']), $this->link);
+        if (!$ok2) {
             return $this->_setDbError('sybase_select_db()');
         }
     }

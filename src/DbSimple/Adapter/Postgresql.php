@@ -2,11 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-use DbSimple\{
-    Adapter\PostgresqlBlob,
-    Database,
-    AdapterInterface
-};
+use DbSimple\Adapter\PostgresqlBlob;
+use DbSimple\Database;
+use DbSimple\AdapterInterface;
 
 /**
  * DbSimple_Postgreql: PostgreSQL database.
@@ -49,9 +47,9 @@ class Postgresql extends Database implements AdapterInterface {
         $this->DbSimple_Postgresql_USE_NATIVE_PHOLDERS = function_exists('pg_prepare');
 
         $dsnWithoutPass = (!empty($p['host']) ? 'host=' . $p['host'] . ' ' : '') .
-            (!empty($p['port']) ? 'port=' . $p['port'] . ' ' : '') .
-            'dbname=' . preg_replace('{^/}s', '', $p['path']) . ' ' .
-            (!empty($p['user']) ? 'user=' . $p['user'] : '');
+                (!empty($p['port']) ? 'port=' . $p['port'] . ' ' : '') .
+                'dbname=' . preg_replace('{^/}s', '', $p['path']) . ' ' .
+                (!empty($p['user']) ? 'user=' . $p['user'] : '');
 
         $ok = $this->link = pg_connect($dsnWithoutPass . " " . (!empty($p['pass']) ? 'password=' . $p['pass'] . ' ' : ''), PGSQL_CONNECT_FORCE_NEW);
         // We use PGSQL_CONNECT_FORCE_NEW, because in PHP 5.3 & PHPUnit
