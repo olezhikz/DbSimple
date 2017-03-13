@@ -89,7 +89,7 @@ if (!defined('DBSIMPLE_PARENT_KEY')) {
  * Logger is COMMON for multiple transactions.
  * Error handler is private for each transaction and database.
  */
-abstract class Database extends LastError {
+abstract class Database extends LastError implements DatabaseInterface {
 
     // Identifiers prefix (used for ?_ placeholder).
     private $_identPrefix = '';

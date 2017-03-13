@@ -5,6 +5,7 @@ namespace DbSimple\Adapter;
 use DbSimple\Adapter\MssqlBlob;
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Mssql: Mssql database.
@@ -27,7 +28,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for Mssql.
  */
-class Mssql extends Database implements AdapterInterface {
+class Mssql extends Database implements AdapterInterface, DatabaseInterface {
 
     var $link;
 
@@ -50,7 +51,10 @@ class Mssql extends Database implements AdapterInterface {
         }
     }
 
-    function _performEscape($s, $isIdent = false) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return "'" . str_replace("'", "''", $s) . "'";
         } else {
@@ -58,16 +62,25 @@ class Mssql extends Database implements AdapterInterface {
         }
     }
 
-    function _performTransaction($parameters = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransaction($parameters = null) {
         return $this->query('BEGIN TRANSACTION');
     }
 
-    function _performNewBlob($blobid = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performNewBlob($blobid = null) {
         $obj = new MssqlBlob($this, $blobid);
         return $obj;
     }
 
-    function _performGetBlobFieldNames($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetBlobFieldNames($result) {
         $blobFields = array();
         for ($i = mssql_num_fields($result) - 1; $i >= 0; $i--) {
             $type = mssql_field_type($result, $i);
@@ -78,7 +91,10 @@ class Mssql extends Database implements AdapterInterface {
         return $blobFields;
     }
 
-    function _performGetPlaceholderIgnoreRe() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
             \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
@@ -87,15 +103,24 @@ class Mssql extends Database implements AdapterInterface {
         ';
     }
 
-    function _performCommit() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performCommit() {
         return $this->query('COMMIT TRANSACTION');
     }
 
-    function _performRollback() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performRollback() {
         return $this->query('ROLLBACK TRANSACTION');
     }
 
-    function _performTransformQuery(&$queryMain, $how) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
             // Prepare total calculation (if possible)
@@ -138,7 +163,10 @@ class Mssql extends Database implements AdapterInterface {
         return false;
     }
 
-    function _performQuery($queryMain) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
 
@@ -166,7 +194,10 @@ class Mssql extends Database implements AdapterInterface {
         return $result;
     }
 
-    function _performFetch($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performFetch($result) {
         $row = mssql_fetch_assoc($result);
         //if (mssql_error()) return $this->_setDbError($this->_lastQuery);
         if ($row === false) {
@@ -184,7 +215,7 @@ class Mssql extends Database implements AdapterInterface {
         return $row;
     }
 
-    function _setDbError($query, $errors = null) {
+    protected function _setDbError($query, $errors = null) {
         return $this->_setLastError('Error! ', mssql_get_last_message() . strip_tags($errors), $query);
     }
 

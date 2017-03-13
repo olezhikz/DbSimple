@@ -5,6 +5,7 @@ namespace DbSimple\Adapter;
 use DbSimple\Adapter\MysqlBlob;
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Mysql: MySQL database.
@@ -27,7 +28,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for MySQL.
  */
-class Mysql extends Database implements AdapterInterface {
+class Mysql extends Database implements AdapterInterface, DatabaseInterface {
 
     var $link;
 
@@ -64,6 +65,9 @@ class Mysql extends Database implements AdapterInterface {
         mysql_query('SET NAMES ' . (isset($dsn['enc']) ? $dsn['enc'] : 'UTF8'));
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return "'" . mysql_real_escape_string($s, $this->link) . "'";
@@ -72,10 +76,16 @@ class Mysql extends Database implements AdapterInterface {
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performNewBlob($blobid = null) {
         return new MysqlBlob($this, $blobid);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetBlobFieldNames($result) {
         $blobFields = array();
         for ($i = mysql_num_fields($result) - 1; $i >= 0; $i--) {
@@ -87,6 +97,9 @@ class Mysql extends Database implements AdapterInterface {
         return $blobFields;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
@@ -96,18 +109,30 @@ class Mysql extends Database implements AdapterInterface {
         ';
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransaction($parameters = null) {
         return $this->query('BEGIN');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performCommit() {
         return $this->query('COMMIT');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performRollback() {
         return $this->query('ROLLBACK');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
@@ -129,6 +154,9 @@ class Mysql extends Database implements AdapterInterface {
         return false;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
@@ -147,6 +175,9 @@ class Mysql extends Database implements AdapterInterface {
         return $result;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performFetch($result) {
         $row = mysql_fetch_assoc($result);
         if (mysql_error()) {

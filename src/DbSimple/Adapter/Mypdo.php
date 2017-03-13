@@ -4,6 +4,7 @@ namespace DbSimple\Adapter;
 
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Mypdo: PDO MySQL database.
@@ -25,7 +26,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for MySQL.
  */
-class Mypdo extends Database implements AdapterInterface {
+class Mypdo extends Database implements AdapterInterface, DatabaseInterface {
 
     private $link;
 
@@ -73,6 +74,9 @@ class Mypdo extends Database implements AdapterInterface {
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetPlaceholderIgnoreRe() {
         return '
 			"   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
@@ -82,6 +86,9 @@ class Mypdo extends Database implements AdapterInterface {
 		';
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return $this->link->quote($s);
@@ -90,18 +97,30 @@ class Mypdo extends Database implements AdapterInterface {
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransaction($parameters = null) {
         return $this->link->beginTransaction();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performCommit() {
         return $this->link->commit();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performRollback() {
         return $this->link->rollBack();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
@@ -125,6 +144,9 @@ class Mypdo extends Database implements AdapterInterface {
         return $res;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
@@ -151,14 +173,23 @@ class Mypdo extends Database implements AdapterInterface {
         return $this->_setLastError($info[1], $info[2], $q);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performNewBlob($id = null) {
 
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetBlobFieldNames($result) {
         return array();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performFetch($result) {
         return $result;
     }

@@ -21,14 +21,14 @@ interface BlobInterface {
     public function write($data);
 
     /**
-     * int length()
-     * Returns length of the blob.
-     */
-    public function length();
-
-    /**
      * blobid close()
      * Closes the blob. Return its ID. No other way to obtain this ID!
      */
     public function close();
+
+    /**
+     * int length()
+     * Returns length of the blob.
+     */
+    public function length();
 }

@@ -2,7 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-class PostgresqlBlob implements \DbSimple\BlobInterface {
+use DbSimple\BlobInterface;
+
+class PostgresqlBlob implements BlobInterface {
 
     var $blob; // resourse link
     var $id;
@@ -15,7 +17,10 @@ class PostgresqlBlob implements \DbSimple\BlobInterface {
         $this->blob = null;
     }
 
-    function read($len) {
+    /**
+     * {@inheritdoc}
+     */
+    public function read($len) {
         if ($this->id === false) {
             return ''; // wr-only blob
         }
@@ -30,7 +35,10 @@ class PostgresqlBlob implements \DbSimple\BlobInterface {
         return $data;
     }
 
-    function write($data) {
+    /**
+     * {@inheritdoc}
+     */
+    public function write($data) {
         if (!($e = $this->_firstUse())) {
             return $e;
         }
@@ -42,7 +50,10 @@ class PostgresqlBlob implements \DbSimple\BlobInterface {
         return true;
     }
 
-    function close() {
+    /**
+     * {@inheritdoc}
+     */
+    public function close() {
         if (!($e = $this->_firstUse())) {
             return $e;
         }
@@ -59,7 +70,10 @@ class PostgresqlBlob implements \DbSimple\BlobInterface {
         return $this->id ? $this->id : $id;
     }
 
-    function length() {
+    /**
+     * {@inheritdoc}
+     */
+    public function length() {
         if (!($e = $this->_firstUse())) {
             return $e;
         }

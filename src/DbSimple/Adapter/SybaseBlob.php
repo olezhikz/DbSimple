@@ -2,7 +2,9 @@
 
 namespace DbSimple\Sybase;
 
-class SybaseBlob implements \DbSimple\BlobInterface {
+use DbSimple\BlobInterface;
+
+class SybaseBlob implements BlobInterface {
 
     // Sybase does not support separate BLOB fetching.
     var $blobdata = null;
@@ -13,21 +15,33 @@ class SybaseBlob implements \DbSimple\BlobInterface {
         $this->curSeek = 0;
     }
 
-    function read($len) {
+    /**
+     * {@inheritdoc}
+     */
+    public function read($len) {
         $p = $this->curSeek;
         $this->curSeek = min($this->curSeek + $len, strlen($this->blobdata));
         return substr($this->blobdata, $this->curSeek, $len);
     }
 
-    function write($data) {
+    /**
+     * {@inheritdoc}
+     */
+    public function write($data) {
         $this->blobdata .= $data;
     }
 
-    function close() {
+    /**
+     * {@inheritdoc}
+     */
+    public function close() {
         return $this->blobdata;
     }
 
-    function length() {
+    /**
+     * {@inheritdoc}
+     */
+    public function length() {
         return strlen($this->blobdata);
     }
 

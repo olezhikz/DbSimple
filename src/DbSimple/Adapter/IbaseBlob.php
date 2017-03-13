@@ -2,7 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-class Blob implements \DbSimple\BlobInterface {
+use DbSimple\BlobInterface;
+
+class Blob implements BlobInterface {
 
     var $blob; // resourse link
     var $id;
@@ -14,7 +16,10 @@ class Blob implements \DbSimple\BlobInterface {
         $this->blob = null;
     }
 
-    function read($len) {
+    /**
+     * {@inheritdoc}
+     */
+    public function read($len) {
         if ($this->id === false) {
             return ''; // wr-only blob
         }
@@ -28,7 +33,10 @@ class Blob implements \DbSimple\BlobInterface {
         return $data;
     }
 
-    function write($data) {
+    /**
+     * {@inheritdoc}
+     */
+    public function write($data) {
         if (!($e = $this->_firstUse())) {
             return $e;
         }
@@ -40,7 +48,10 @@ class Blob implements \DbSimple\BlobInterface {
         return true;
     }
 
-    function close() {
+    /**
+     * {@inheritdoc}
+     */
+    public function close() {
         if (!($e = $this->_firstUse())) {
             return $e;
         }
@@ -56,7 +67,10 @@ class Blob implements \DbSimple\BlobInterface {
         return $this->id ? $this->id : $id;
     }
 
-    function length() {
+    /**
+     * {@inheritdoc}
+     */
+    public function length() {
         if ($this->id === false) {
             return 0; // wr-only blob
         }

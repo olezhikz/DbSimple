@@ -5,6 +5,7 @@ namespace DbSimple\Adapter;
 use DbSimple\Adapter\IbaseBlob;
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Ibase: Interbase/Firebird database.
@@ -34,7 +35,7 @@ define('IBASE_BEST_FETCH', IBASE_UNIXTIME);
 /**
  * Database class for Interbase/Firebird.
  */
-class Ibase extends Database implements AdapterInterface {
+class Ibase extends Database implements AdapterInterface, DatabaseInterface {
 
     var $DbSimple_Ibase_BEST_TRANSACTION = IBASE_BEST_TRANSACTION;
     var $DbSimple_Ibase_USE_NATIVE_PHOLDERS = true;
@@ -48,12 +49,12 @@ class Ibase extends Database implements AdapterInterface {
      * Connect to Interbase/Firebird.
      */
     function __construct($dsn) {
-        $p = \DbSimple\Database::parseDSN($dsn);
+        $p = Database::parseDSN($dsn);
         if (!is_callable('ibase_connect')) {
             return $this->_setLastError("-1", "Interbase/Firebird extension is not loaded", "ibase_connect");
         }
         $ok = $this->link = ibase_connect(
-                $p['host'] . (empty($p['port']) ? "" : ":" . $p['port']) . ':' . preg_replace('{^/}s', '', $p['path']), $p['user'], $p['pass'], isset($p['CHARSET']) ? $p['CHARSET'] : 'win1251', isset($p['BUFFERS']) ? $p['BUFFERS'] : 0, isset($p['DIALECT']) ? $p['DIALECT'] : 3, isset($p['ROLE']) ? $p['ROLE'] : ''
+            $p['host'] . (empty($p['port']) ? "" : ":" . $p['port']) . ':' . preg_replace('{^/}s', '', $p['path']), $p['user'], $p['pass'], isset($p['CHARSET']) ? $p['CHARSET'] : 'win1251', isset($p['BUFFERS']) ? $p['BUFFERS'] : 0, isset($p['DIALECT']) ? $p['DIALECT'] : 3, isset($p['ROLE']) ? $p['ROLE'] : ''
         );
         if (isset($p['TRANSACTION'])) {
             $this->DbSimple_Ibase_BEST_TRANSACTION = eval($p['TRANSACTION'] . ";");
@@ -64,7 +65,10 @@ class Ibase extends Database implements AdapterInterface {
         }
     }
 
-    function _performEscape($s, $isIdent = false) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return "'" . str_replace("'", "''", $s) . "'";
         } else {
@@ -72,18 +76,27 @@ class Ibase extends Database implements AdapterInterface {
         }
     }
 
-    function _performTransaction($parameters = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransaction($parameters = null) {
         if ($parameters === null) {
             $parameters = $this->DbSimple_Ibase_BEST_TRANSACTION;
         }
         $this->trans = ibase_trans($parameters, $this->link);
     }
 
-    function _performNewBlob($blobid = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performNewBlob($blobid = null) {
         return new IbaseBlob($this, $blobid);
     }
 
-    function _performGetBlobFieldNames($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetBlobFieldNames($result) {
         $blobFields = array();
         for ($i = ibase_num_fields($result) - 1; $i >= 0; $i--) {
             $info = ibase_field_info($result, $i);
@@ -94,7 +107,10 @@ class Ibase extends Database implements AdapterInterface {
         return $blobFields;
     }
 
-    function _performGetPlaceholderIgnoreRe() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
             \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
@@ -103,7 +119,10 @@ class Ibase extends Database implements AdapterInterface {
         ';
     }
 
-    function _performCommit() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performCommit() {
         if (!is_resource($this->trans)) {
             return false;
         }
@@ -114,7 +133,10 @@ class Ibase extends Database implements AdapterInterface {
         return $result;
     }
 
-    function _performRollback() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performRollback() {
         if (!is_resource($this->trans)) {
             return false;
         }
@@ -125,7 +147,10 @@ class Ibase extends Database implements AdapterInterface {
         return $result;
     }
 
-    function _performTransformQuery(&$queryMain, $how) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
             // Prepare total calculation (if possible)
@@ -162,7 +187,10 @@ class Ibase extends Database implements AdapterInterface {
         return false;
     }
 
-    function _performQuery($queryMain) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, $this->DbSimple_Ibase_USE_NATIVE_PHOLDERS);
 
@@ -197,7 +225,10 @@ class Ibase extends Database implements AdapterInterface {
         return $result;
     }
 
-    function _performFetch($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performFetch($result) {
         // Select fetch mode.
         $flags = $this->fetchFlags;
         if (empty($this->attributes['BLOB_OBJ'])) {
@@ -214,7 +245,7 @@ class Ibase extends Database implements AdapterInterface {
         return $row;
     }
 
-    function _setDbError($query) {
+    protected function _setDbError($query) {
         return $this->_setLastError(ibase_errcode(), ibase_errmsg(), $query);
     }
 

@@ -5,6 +5,7 @@ namespace DbSimple\Adapter;
 use DbSimple\Adapter\PostgresqlBlob;
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Postgreql: PostgreSQL database.
@@ -27,7 +28,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for PostgreSQL.
  */
-class Postgresql extends Database implements AdapterInterface {
+class Postgresql extends Database implements AdapterInterface, DatabaseInterface {
 
     var $DbSimple_Postgresql_USE_NATIVE_PHOLDERS = null;
     var $prepareCache = array();
@@ -47,9 +48,9 @@ class Postgresql extends Database implements AdapterInterface {
         $this->DbSimple_Postgresql_USE_NATIVE_PHOLDERS = function_exists('pg_prepare');
 
         $dsnWithoutPass = (!empty($p['host']) ? 'host=' . $p['host'] . ' ' : '') .
-                (!empty($p['port']) ? 'port=' . $p['port'] . ' ' : '') .
-                'dbname=' . preg_replace('{^/}s', '', $p['path']) . ' ' .
-                (!empty($p['user']) ? 'user=' . $p['user'] : '');
+            (!empty($p['port']) ? 'port=' . $p['port'] . ' ' : '') .
+            'dbname=' . preg_replace('{^/}s', '', $p['path']) . ' ' .
+            (!empty($p['user']) ? 'user=' . $p['user'] : '');
 
         $ok = $this->link = pg_connect($dsnWithoutPass . " " . (!empty($p['pass']) ? 'password=' . $p['pass'] . ' ' : ''), PGSQL_CONNECT_FORCE_NEW);
         // We use PGSQL_CONNECT_FORCE_NEW, because in PHP 5.3 & PHPUnit
@@ -65,7 +66,10 @@ class Postgresql extends Database implements AdapterInterface {
         }
     }
 
-    function _performEscape($s, $isIdent = false) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return "E'" . pg_escape_string($this->link, $s) . "'";
         } else {
@@ -73,15 +77,24 @@ class Postgresql extends Database implements AdapterInterface {
         }
     }
 
-    function _performTransaction($parameters = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransaction($parameters = null) {
         return $this->query('BEGIN');
     }
 
-    function& _performNewBlob($blobid = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performNewBlob($blobid = null) {
         return new PostgresqlBlob($this, $blobid);
     }
 
-    function _performGetBlobFieldNames($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetBlobFieldNames($result) {
         $blobFields = array();
         for ($i = pg_num_fields($result) - 1; $i >= 0; $i--) {
             $type = pg_field_type($result, $i);
@@ -92,8 +105,11 @@ class Postgresql extends Database implements AdapterInterface {
         return $blobFields;
     }
 
-    // TODO: Real PostgreSQL escape
-    function _performGetPlaceholderIgnoreRe() {
+    /**
+     * {@inheritdoc}
+     * @todo Real PostgreSQL escape
+     */
+    protected function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
             \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
@@ -101,21 +117,32 @@ class Postgresql extends Database implements AdapterInterface {
         ';
     }
 
-    function _performGetNativePlaceholderMarker($n) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetNativePlaceholderMarker($n) {
         // PostgreSQL uses specific placeholders such as $1, $2, etc.
         return '$' . ($n + 1);
     }
 
-    function _performCommit() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performCommit() {
         return $this->query('COMMIT');
     }
 
-    function _performRollback() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performRollback() {
         return $this->query('ROLLBACK');
     }
 
-    function _performTransformQuery(&$queryMain, $how) {
-
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
             // Prepare total calculation (if possible)
@@ -148,7 +175,10 @@ class Postgresql extends Database implements AdapterInterface {
         return false;
     }
 
-    function _performQuery($queryMain) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $isInsert = preg_match('/^\s* INSERT \s+/six', $queryMain[0]);
 
@@ -209,7 +239,10 @@ class Postgresql extends Database implements AdapterInterface {
         return $result;
     }
 
-    function _performFetch($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performFetch($result) {
         $row = pg_fetch_assoc($result);
         if (pg_last_error($this->link)) {
             return $this->_setDbError($this->_lastQuery);

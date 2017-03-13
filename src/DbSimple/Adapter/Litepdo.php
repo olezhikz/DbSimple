@@ -5,6 +5,7 @@ namespace DbSimple\Adapter;
 
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Litepdo: PDO SQLite database.
@@ -26,7 +27,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for SQLite.
  */
-class Litepdo extends Database implements AdapterInterface {
+class Litepdo extends Database implements AdapterInterface, DatabaseInterface {
 
     private $link;
 
@@ -51,6 +52,9 @@ class Litepdo extends Database implements AdapterInterface {
         return $this->link->CreateAggregate($function_name, $step_func, $finalize_func, $num_args);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetPlaceholderIgnoreRe() {
         return '
 			"   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
@@ -60,6 +64,9 @@ class Litepdo extends Database implements AdapterInterface {
 		';
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return $this->link->quote($s);
@@ -68,18 +75,30 @@ class Litepdo extends Database implements AdapterInterface {
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransaction($parameters = null) {
         return $this->link->beginTransaction();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performCommit() {
         return $this->link->commit();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performRollback() {
         return $this->link->rollBack();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
@@ -103,6 +122,9 @@ class Litepdo extends Database implements AdapterInterface {
         return $res;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
@@ -141,14 +163,23 @@ class Litepdo extends Database implements AdapterInterface {
         return $this->_setLastError($info[1], $info[2], $q);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performNewBlob($id = null) {
 
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetBlobFieldNames($result) {
         return array();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performFetch($result) {
         return $result;
     }

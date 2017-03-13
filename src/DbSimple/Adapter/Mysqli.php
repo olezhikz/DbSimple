@@ -5,6 +5,7 @@ namespace DbSimple\Adapter;
 use DbSimple\Adapter\MysqliBlob;
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Mysql: MySQL database.
@@ -27,7 +28,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for MySQL.
  */
-class Mysqli extends Database implements AdapterInterface {
+class Mysqli extends Database implements AdapterInterface, DatabaseInterface {
 
     var $link;
 
@@ -52,12 +53,12 @@ class Mysqli extends Database implements AdapterInterface {
         if (isset($dsn['socket'])) {
             // Socket connection
             $this->link = mysqli_connect(
-                    null, empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), null, $dsn['socket']
+                null, empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), null, $dsn['socket']
             );
         } else if (isset($dsn['host'])) {
             // Host connection
             $this->link = mysqli_connect(
-                    $dsn['host'], empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), empty($dsn['port']) ? null : $dsn['port']
+                $dsn['host'], empty($dsn['user']) ? 'root' : $dsn['user'], empty($dsn['pass']) ? '' : $dsn['pass'], preg_replace('{^/}s', '', $dsn['path']), empty($dsn['port']) ? null : $dsn['port']
             );
         } else {
             return $this->_setDbError('mysqli_connect()');
@@ -70,6 +71,9 @@ class Mysqli extends Database implements AdapterInterface {
         mysqli_set_charset($this->link, isset($dsn['enc']) ? $dsn['enc'] : 'UTF8');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return "'" . mysqli_real_escape_string($this->link, $s) . "'";
@@ -78,10 +82,16 @@ class Mysqli extends Database implements AdapterInterface {
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performNewBlob($blobid = null) {
         return new MysqliBlob($this, $blobid);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetBlobFieldNames($result) {
         $allFields = mysqli_fetch_fields($result);
         $blobFields = array();
@@ -96,6 +106,9 @@ class Mysqli extends Database implements AdapterInterface {
         return $blobFields;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
@@ -105,6 +118,9 @@ class Mysqli extends Database implements AdapterInterface {
         ';
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransaction($parameters = null) {
         if (function_exists('mysqli_begin_transaction')) {
             return mysqli_begin_transaction($this->link);
@@ -113,14 +129,23 @@ class Mysqli extends Database implements AdapterInterface {
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performCommit() {
         return mysqli_commit($this->link);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performRollback() {
         return mysqli_rollback($this->link);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
@@ -142,6 +167,9 @@ class Mysqli extends Database implements AdapterInterface {
         return false;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
@@ -160,6 +188,9 @@ class Mysqli extends Database implements AdapterInterface {
         return $result;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performFetch($result) {
         $row = mysqli_fetch_assoc($result);
         if (mysqli_error($this->link)) {

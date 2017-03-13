@@ -5,6 +5,7 @@ namespace DbSimple\Adapter;
 use DbSimple\Adapter\SybaseBlob;
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Sybase: Sybase database.
@@ -28,7 +29,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for Sybase.
  */
-class Sybase extends Database implements AdapterInterface {
+class Sybase extends Database implements AdapterInterface, DatabaseInterface {
 
     var $link;
     private $_result;
@@ -65,7 +66,10 @@ class Sybase extends Database implements AdapterInterface {
         }
     }
 
-    function _performEscape($s, $isIdent = false) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             if (is_int($s)) {
                 return $s;
@@ -77,16 +81,25 @@ class Sybase extends Database implements AdapterInterface {
         }
     }
 
-    function _performTransaction($parameters = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransaction($parameters = null) {
         return $this->query('BEGIN TRANSACTION');
     }
 
-    function _performNewBlob($blobid = null) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performNewBlob($blobid = null) {
         $obj = new SybaseBlob($this, $blobid);
         return $obj;
     }
 
-    function _performGetBlobFieldNames($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetBlobFieldNames($result) {
         $blobFields = array();
         for ($i = sybase_num_fields($result) - 1; $i >= 0; $i--) {
             $type = sybase_fetch_field($result, $i);
@@ -98,7 +111,10 @@ class Sybase extends Database implements AdapterInterface {
         return $blobFields;
     }
 
-    function _performGetPlaceholderIgnoreRe() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performGetPlaceholderIgnoreRe() {
         return '
             "   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
             \'  (?> [^\'\\\\]+|\\\\\'|\\\\)* \'   |
@@ -107,15 +123,24 @@ class Sybase extends Database implements AdapterInterface {
         ';
     }
 
-    function _performCommit() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performCommit() {
         return $this->query('COMMIT TRANSACTION');
     }
 
-    function _performRollback() {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performRollback() {
         return $this->query('ROLLBACK TRANSACTION');
     }
 
-    function _performTransformQuery(&$queryMain, $how) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
             // Prepare total calculation (if possible)
@@ -158,7 +183,10 @@ class Sybase extends Database implements AdapterInterface {
         return false;
     }
 
-    function _performQuery($queryMain) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
 
@@ -204,7 +232,10 @@ class Sybase extends Database implements AdapterInterface {
         return $this->_text_fields;
     }
 
-    function _performFetch($result) {
+    /**
+     * {@inheritdoc}
+     */
+    protected function _performFetch($result) {
         $row = sybase_fetch_assoc($result);
         //if (sybase_error()(!!!)) return $this->_setDbError($this->_lastQuery);
         if ($row === false) {

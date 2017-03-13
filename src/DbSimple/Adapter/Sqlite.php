@@ -4,6 +4,7 @@ namespace DbSimple\Adapter;
 
 use DbSimple\Database;
 use DbSimple\AdapterInterface;
+use DbSimple\DatabaseInterface;
 
 /**
  * DbSimple_Sqlite: Sqlite2 database.
@@ -24,7 +25,7 @@ use DbSimple\AdapterInterface;
 /**
  * Database class for Sqlite.
  */
-class Sqlite extends Database implements AdapterInterface {
+class Sqlite extends Database implements AdapterInterface, DatabaseInterface {
 
     private $link;
 
@@ -49,6 +50,9 @@ class Sqlite extends Database implements AdapterInterface {
         return $this->link->createAggregate($function_name, $step_func, $finalize_func, $num_args);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetPlaceholderIgnoreRe() {
         return '
 			"   (?> [^"\\\\]+|\\\\"|\\\\)*    "   |
@@ -58,6 +62,9 @@ class Sqlite extends Database implements AdapterInterface {
 		/*';
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performEscape($s, $isIdent = false) {
         if (!$isIdent) {
             return '\'' . sqlite_escape_string($s) . '\'';
@@ -66,18 +73,30 @@ class Sqlite extends Database implements AdapterInterface {
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransaction($parameters = null) {
         return $this->link->query('BEGIN TRANSACTION');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performCommit() {
         return $this->link->query('COMMIT TRANSACTION');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performRollback() {
         return $this->link->query('ROLLBACK TRANSACTION');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performQuery($queryMain) {
         $this->_lastQuery = $queryMain;
         $this->_expandPlaceholders($queryMain, false);
@@ -96,6 +115,9 @@ class Sqlite extends Database implements AdapterInterface {
         return $p->fetchAll(SQLITE_ASSOC);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performTransformQuery(&$queryMain, $how) {
         // If we also need to calculate total number of found rows...
         switch ($how) {
@@ -133,14 +155,23 @@ class Sqlite extends Database implements AdapterInterface {
         return $this->_setLastError($this->link->lastError(), sqlite_error_string($this->link->lastError()), $query);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performNewBlob($id = null) {
 
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performGetBlobFieldNames($result) {
         return array();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function _performFetch($result) {
         return $result;
     }

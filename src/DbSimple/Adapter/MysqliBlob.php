@@ -2,7 +2,9 @@
 
 namespace DbSimple\Adapter;
 
-class MysqliBlob implements \DbSimple\BlobInterface {
+use DbSimple\BlobInterface;
+
+class MysqliBlob implements BlobInterface {
 
     // MySQL does not support separate BLOB fetching.
     private $blobdata = null;
@@ -13,20 +15,32 @@ class MysqliBlob implements \DbSimple\BlobInterface {
         $this->curSeek = 0;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function read($len) {
         $p = $this->curSeek;
         $this->curSeek = min($this->curSeek + $len, strlen($this->blobdata));
         return substr($this->blobdata, $p, $len);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function write($data) {
         $this->blobdata .= $data;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function close() {
         return $this->blobdata;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function length() {
         return strlen($this->blobdata);
     }
