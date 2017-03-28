@@ -107,7 +107,7 @@ class Connect {
      * Подключение к базе данных
      * @param string $dsn DSN строка БД
      */
-    protected function connect($dsn) {
+    public function connect($dsn) {
         $parsed = $this->parseDSN($dsn);
         if (!$parsed) {
             $this->errorHandler('Ошибка разбора строки DSN', $dsn);
