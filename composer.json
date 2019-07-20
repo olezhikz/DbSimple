@@ -1,5 +1,5 @@
 {
-    "name": "ambalus/dbsimple",
+    "name": "livestreet/dbsimple",
     "type": "library",
     "keywords": ["db", "simple"],
     "description": "Interface to work with various DBs.",
